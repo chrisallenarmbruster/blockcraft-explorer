@@ -1,0 +1,33 @@
+{
+  "name": "blockcraft-explorer",
+  "version": "0.1.0",
+  "description": "React frontend for my Blockcraft blockchain package",
+  "main": "src/index.jsx",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chrisallenarmbruster/blockcraft-explorer.git"
+  },
+  "keywords": [
+    "blockchain",
+    "blockcraft",
+    "blockchain-explorer",
+    "react",
+    "redux",
+    "vite",
+    "frontend",
+    "crypto",
+    "cryptocurrency",
+    "explorer",
+    "dapp",
+    "decentralized"
+  ],
+  "author": "Chris Armbruster <chris@armbrustermail.com> (https://github.com/chrisallenarmbruster)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/chrisallenarmbruster/blockcraft-explorer/issues"
+  },
+  "homepage": "https://github.com/chrisallenarmbruster/blockcraft-explorer#readme"
+}

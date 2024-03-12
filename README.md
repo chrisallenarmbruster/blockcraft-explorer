@@ -1,2 +1,3 @@
 # blockcraft-explorer
-React forntend for my Blockcraft blockchain package
+
+React frontend for my Blockcraft blockchain package
