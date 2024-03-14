@@ -12,8 +12,10 @@ import {
 const NavBar = () => {
   return (
     <Navbar bg="dark" variant="dark" expand="lg">
-      <Container fluid>
-        <Navbar.Brand href="#home">Blockcraft Explorer</Navbar.Brand>
+      <Container>
+        <Navbar.Brand as={Link} to="/">
+          Blockcraft Explorer
+        </Navbar.Brand>
         <Navbar.Toggle aria-controls="navbarScroll" />
         <Navbar.Collapse id="navbarScroll">
           <Nav
@@ -32,6 +34,9 @@ const NavBar = () => {
             </Nav.Link>
             <Nav.Link as={Link} to="/entries">
               Entries
+            </Nav.Link>
+            <Nav.Link as={Link} to="/nodes">
+              Nodes
             </Nav.Link>
           </Nav>
           <Form className="d-flex">

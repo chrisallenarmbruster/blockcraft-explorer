@@ -32,7 +32,7 @@ function ChainIntegrityChecker() {
 
   return (
     <div>
-      <h2>Chain Integrity Check</h2>
+      <h1>Welcome to the Chain Integrity Check Page</h1>
       {chainIntegrity.isLoading ? (
         <p>Loading...</p>
       ) : chainIntegrity.error ? (
