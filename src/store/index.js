@@ -1,9 +1,9 @@
 import { configureStore } from "@reduxjs/toolkit";
-// Import reducers here
+import blockchainInfoReducer from "./blockchainInfoSlice";
 
 const store = configureStore({
   reducer: {
-    // reducers go here
+    blockchainInfo: blockchainInfoReducer,
   },
 });
 

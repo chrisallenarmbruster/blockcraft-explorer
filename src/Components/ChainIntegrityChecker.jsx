@@ -10,7 +10,7 @@ function ChainIntegrityChecker() {
   useEffect(() => {
     async function fetchChainIntegrity() {
       try {
-        const response = await fetch("/api/chain-integrity");
+        const response = await fetch("/api/chain/integrity");
         console.log("response", response);
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);

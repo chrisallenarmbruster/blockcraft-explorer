@@ -14,7 +14,7 @@ function App() {
       <NavBar />
       <Container className="mt-3">
         <Routes>
-          <Route path="/" element={<Home />} />
+          <Route exact path="/" element={<Home />} />
           <Route path="/blocks" element={<Blocks />} />
           <Route path="/entries" element={<Entries />} />
           <Route path="/integrity" element={<ChainIntegrityChecker />} />

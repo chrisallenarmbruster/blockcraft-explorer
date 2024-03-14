@@ -1,10 +1,11 @@
 import React from "react";
+import BlockchainInfo from "./BlockchainInfo";
 
 const Home = () => {
   return (
     <div>
-      <h1>Welcome to Home Page</h1>
-      <p>This is the Home page of our application.</p>
+      <h1 className="h3">Blockchain Info</h1>
+      <BlockchainInfo />
     </div>
   );
 };
