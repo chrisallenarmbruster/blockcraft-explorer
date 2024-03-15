@@ -2,7 +2,7 @@ import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 
 export const fetchBlockchainInfo = createAsyncThunk(
   "blockchainInfo/fetch",
-  async (_, thunkAPI) => {
+  async (_, { rejectWithValue }) => {
     try {
       const response = await fetch("/api/chain/info");
       if (!response.ok) {
@@ -11,7 +11,7 @@ export const fetchBlockchainInfo = createAsyncThunk(
       const data = await response.json();
       return data;
     } catch (error) {
-      return thunkAPI.rejectWithValue(error.message.toString());
+      return rejectWithValue(error.message);
     }
   }
 );
