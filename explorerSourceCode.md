@@ -166,7 +166,7 @@ function App() {
       <NavBar />
       <Container className="mt-3">
         <Routes>
-          <Route path="/" element={<Home />} />
+          <Route exact path="/" element={<Home />} />
           <Route path="/blocks" element={<Blocks />} />
           <Route path="/entries" element={<Entries />} />
           <Route path="/integrity" element={<ChainIntegrityChecker />} />
@@ -179,6 +179,81 @@ function App() {
 }
 
 export default App;
+
+```
+
+# src/Components/BlockchainInfo.jsx
+
+```javascript
+import React, { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchBlockchainInfo } from "../store/blockchainInfoSlice";
+import { Container, Row, Col, Alert } from "react-bootstrap";
+import { useLocation } from "react-router-dom";
+
+const BlockchainInfo = () => {
+  const dispatch = useDispatch();
+  const location = useLocation();
+  const {
+    blockchainName,
+    bornOn,
+    currentHeight,
+    difficulty,
+    totalSupply,
+    isLoading,
+    error,
+  } = useSelector((state) => state.blockchainInfo);
+
+  useEffect(() => {
+    dispatch(fetchBlockchainInfo());
+  }, [dispatch, location.pathname]);
+
+  if (isLoading) return <p>Loading blockchain info...</p>;
+  if (error) {
+    return (
+      <Alert variant="danger">Error fetching blockchain info: {error}</Alert>
+    );
+  }
+
+  const formatDate = (timestamp) => {
+    return new Date(timestamp).toLocaleDateString();
+  };
+
+  return (
+    <Container>
+      {!error && (
+        <>
+          <Row className="mb-3">
+            <Col xs={12} md={6} lg={3}>
+              <strong>Name:</strong> {blockchainName}
+            </Col>
+            <Col xs={12} md={6} lg={3}>
+              <strong>Born On:</strong> {formatDate(bornOn)}
+            </Col>
+            <Col xs={12} md={6} lg={3}>
+              <strong>Height:</strong> {currentHeight}
+            </Col>
+            {difficulty && (
+              <Col xs={12} md={6} lg={3}>
+                <strong>Difficulty:</strong> {difficulty}
+              </Col>
+            )}
+            {!difficulty && <Col lg={3}></Col>}
+          </Row>
+          {totalSupply !== null && (
+            <Row>
+              <Col xs={12} lg={{ span: 6, offset: 3 }}>
+                <strong>Total Supply:</strong> {totalSupply}
+              </Col>
+            </Row>
+          )}
+        </>
+      )}
+    </Container>
+  );
+};
+
+export default BlockchainInfo;
 
 ```
 
@@ -215,7 +290,7 @@ function ChainIntegrityChecker() {
   useEffect(() => {
     async function fetchChainIntegrity() {
       try {
-        const response = await fetch("/api/chain-integrity");
+        const response = await fetch("/api/chain/integrity");
         console.log("response", response);
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -275,12 +350,13 @@ export default Entries;
 
 ```javascript
 import React from "react";
+import BlockchainInfo from "./BlockchainInfo";
 
 const Home = () => {
   return (
     <div>
-      <h1>Welcome to Home Page</h1>
-      <p>This is the Home page of our application.</p>
+      <h1 className="h3">Blockchain Info</h1>
+      <BlockchainInfo />
     </div>
   );
 };
@@ -395,15 +471,78 @@ root.render(
 
 ```
 
+# src/store/blockchainInfoSlice.js
+
+```javascript
+import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+
+export const fetchBlockchainInfo = createAsyncThunk(
+  "blockchainInfo/fetch",
+  async (_, thunkAPI) => {
+    try {
+      const response = await fetch("/api/chain/info");
+      if (!response.ok) {
+        throw new Error(`server responded with status: ${response.status}`);
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      return thunkAPI.rejectWithValue(error.message.toString());
+    }
+  }
+);
+
+const initialState = {
+  blockchainName: "",
+  bornOn: null,
+  currentHeight: 0,
+  difficulty: null,
+  totalSupply: null,
+  isLoading: false,
+  error: null,
+};
+
+const blockchainInfoSlice = createSlice({
+  name: "blockchainInfo",
+  initialState,
+  reducers: {},
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchBlockchainInfo.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(fetchBlockchainInfo.fulfilled, (state, action) => {
+        state.blockchainName = action.payload.blockchainName;
+        state.bornOn = action.payload.bornOn;
+        state.currentHeight = action.payload.currentHeight;
+        if ("difficulty" in action.payload) {
+          state.difficulty = action.payload.difficulty;
+        }
+        if ("totalSupply" in action.payload) {
+          state.totalSupply = action.payload.totalSupply;
+        }
+        state.isLoading = false;
+      })
+      .addCase(fetchBlockchainInfo.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload;
+      });
+  },
+});
+
+export default blockchainInfoSlice.reducer;
+
+```
+
 # src/store/index.js
 
 ```javascript
 import { configureStore } from "@reduxjs/toolkit";
-// Import reducers here
+import blockchainInfoReducer from "./blockchainInfoSlice";
 
 const store = configureStore({
   reducer: {
-    // reducers go here
+    blockchainInfo: blockchainInfoReducer,
   },
 });
 
@@ -452,7 +591,7 @@ function App() {
       <NavBar />
       <Container className="mt-3">
         <Routes>
-          <Route path="/" element={<Home />} />
+          <Route exact path="/" element={<Home />} />
           <Route path="/blocks" element={<Blocks />} />
           <Route path="/entries" element={<Entries />} />
           <Route path="/integrity" element={<ChainIntegrityChecker />} />
@@ -465,6 +604,81 @@ function App() {
 }
 
 export default App;
+
+```
+
+# src/Components/BlockchainInfo.jsx
+
+```javascript
+import React, { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchBlockchainInfo } from "../store/blockchainInfoSlice";
+import { Container, Row, Col, Alert } from "react-bootstrap";
+import { useLocation } from "react-router-dom";
+
+const BlockchainInfo = () => {
+  const dispatch = useDispatch();
+  const location = useLocation();
+  const {
+    blockchainName,
+    bornOn,
+    currentHeight,
+    difficulty,
+    totalSupply,
+    isLoading,
+    error,
+  } = useSelector((state) => state.blockchainInfo);
+
+  useEffect(() => {
+    dispatch(fetchBlockchainInfo());
+  }, [dispatch, location.pathname]);
+
+  if (isLoading) return <p>Loading blockchain info...</p>;
+  if (error) {
+    return (
+      <Alert variant="danger">Error fetching blockchain info: {error}</Alert>
+    );
+  }
+
+  const formatDate = (timestamp) => {
+    return new Date(timestamp).toLocaleDateString();
+  };
+
+  return (
+    <Container>
+      {!error && (
+        <>
+          <Row className="mb-3">
+            <Col xs={12} md={6} lg={3}>
+              <strong>Name:</strong> {blockchainName}
+            </Col>
+            <Col xs={12} md={6} lg={3}>
+              <strong>Born On:</strong> {formatDate(bornOn)}
+            </Col>
+            <Col xs={12} md={6} lg={3}>
+              <strong>Height:</strong> {currentHeight}
+            </Col>
+            {difficulty && (
+              <Col xs={12} md={6} lg={3}>
+                <strong>Difficulty:</strong> {difficulty}
+              </Col>
+            )}
+            {!difficulty && <Col lg={3}></Col>}
+          </Row>
+          {totalSupply !== null && (
+            <Row>
+              <Col xs={12} lg={{ span: 6, offset: 3 }}>
+                <strong>Total Supply:</strong> {totalSupply}
+              </Col>
+            </Row>
+          )}
+        </>
+      )}
+    </Container>
+  );
+};
+
+export default BlockchainInfo;
 
 ```
 
@@ -501,7 +715,7 @@ function ChainIntegrityChecker() {
   useEffect(() => {
     async function fetchChainIntegrity() {
       try {
-        const response = await fetch("/api/chain-integrity");
+        const response = await fetch("/api/chain/integrity");
         console.log("response", response);
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -561,12 +775,13 @@ export default Entries;
 
 ```javascript
 import React from "react";
+import BlockchainInfo from "./BlockchainInfo";
 
 const Home = () => {
   return (
     <div>
-      <h1>Welcome to Home Page</h1>
-      <p>This is the Home page of our application.</p>
+      <h1 className="h3">Blockchain Info</h1>
+      <BlockchainInfo />
     </div>
   );
 };
@@ -681,15 +896,78 @@ root.render(
 
 ```
 
+# src/store/blockchainInfoSlice.js
+
+```javascript
+import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+
+export const fetchBlockchainInfo = createAsyncThunk(
+  "blockchainInfo/fetch",
+  async (_, thunkAPI) => {
+    try {
+      const response = await fetch("/api/chain/info");
+      if (!response.ok) {
+        throw new Error(`server responded with status: ${response.status}`);
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      return thunkAPI.rejectWithValue(error.message.toString());
+    }
+  }
+);
+
+const initialState = {
+  blockchainName: "",
+  bornOn: null,
+  currentHeight: 0,
+  difficulty: null,
+  totalSupply: null,
+  isLoading: false,
+  error: null,
+};
+
+const blockchainInfoSlice = createSlice({
+  name: "blockchainInfo",
+  initialState,
+  reducers: {},
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchBlockchainInfo.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(fetchBlockchainInfo.fulfilled, (state, action) => {
+        state.blockchainName = action.payload.blockchainName;
+        state.bornOn = action.payload.bornOn;
+        state.currentHeight = action.payload.currentHeight;
+        if ("difficulty" in action.payload) {
+          state.difficulty = action.payload.difficulty;
+        }
+        if ("totalSupply" in action.payload) {
+          state.totalSupply = action.payload.totalSupply;
+        }
+        state.isLoading = false;
+      })
+      .addCase(fetchBlockchainInfo.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload;
+      });
+  },
+});
+
+export default blockchainInfoSlice.reducer;
+
+```
+
 # src/store/index.js
 
 ```javascript
 import { configureStore } from "@reduxjs/toolkit";
-// Import reducers here
+import blockchainInfoReducer from "./blockchainInfoSlice";
 
 const store = configureStore({
   reducer: {
-    // reducers go here
+    blockchainInfo: blockchainInfoReducer,
   },
 });
 

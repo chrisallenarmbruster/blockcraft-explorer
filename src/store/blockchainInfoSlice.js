@@ -20,6 +20,7 @@ const initialState = {
   blockchainName: "",
   bornOn: null,
   currentHeight: 0,
+  hashRate: null,
   difficulty: null,
   totalSupply: null,
   isLoading: false,
@@ -29,16 +30,25 @@ const initialState = {
 const blockchainInfoSlice = createSlice({
   name: "blockchainInfo",
   initialState,
-  reducers: {},
+  reducers: {
+    resetError: (state) => {
+      state.error = null;
+    },
+  },
   extraReducers: (builder) => {
     builder
       .addCase(fetchBlockchainInfo.pending, (state) => {
-        state.isLoading = true;
+        if (!state.currentHeight) {
+          state.isLoading = true;
+        }
       })
       .addCase(fetchBlockchainInfo.fulfilled, (state, action) => {
         state.blockchainName = action.payload.blockchainName;
         state.bornOn = action.payload.bornOn;
         state.currentHeight = action.payload.currentHeight;
+        if ("hashRate" in action.payload) {
+          state.hashRate = action.payload.hashRate;
+        }
         if ("difficulty" in action.payload) {
           state.difficulty = action.payload.difficulty;
         }
@@ -46,6 +56,7 @@ const blockchainInfoSlice = createSlice({
           state.totalSupply = action.payload.totalSupply;
         }
         state.isLoading = false;
+        state.error = null;
       })
       .addCase(fetchBlockchainInfo.rejected, (state, action) => {
         state.isLoading = false;
@@ -53,5 +64,7 @@ const blockchainInfoSlice = createSlice({
       });
   },
 });
+
+export const { resetError } = blockchainInfoSlice.actions;
 
 export default blockchainInfoSlice.reducer;
