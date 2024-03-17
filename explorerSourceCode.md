@@ -188,17 +188,17 @@ export default App;
 import React, { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchBlockchainInfo } from "../store/blockchainInfoSlice";
-import { Container, Row, Col, Alert } from "react-bootstrap";
-import { useLocation } from "react-router-dom";
+import { Container, Row, Col, Alert, Button } from "react-bootstrap";
+import { resetError } from "../store/blockchainInfoSlice";
 
 const BlockchainInfo = () => {
   const dispatch = useDispatch();
-  const location = useLocation();
   const {
     blockchainName,
     bornOn,
     currentHeight,
     difficulty,
+    hashRate,
     totalSupply,
     isLoading,
     error,
@@ -206,12 +206,26 @@ const BlockchainInfo = () => {
 
   useEffect(() => {
     dispatch(fetchBlockchainInfo());
-  }, [dispatch, location.pathname]);
+    return () => {
+      if (error) {
+        dispatch(resetError());
+      }
+    };
+  }, [dispatch, error]);
+
+  const handleRefresh = () => {
+    dispatch(fetchBlockchainInfo());
+  };
 
   if (isLoading) return <p>Loading blockchain info...</p>;
   if (error) {
     return (
-      <Alert variant="danger">Error fetching blockchain info: {error}</Alert>
+      <Alert variant="danger" className="d-flex align-items-center">
+        Error fetching blockchain info: {error}{" "}
+        <Button variant="link" onClick={handleRefresh}>
+          <i className="bi bi-arrow-clockwise"></i>
+        </Button>
+      </Alert>
     );
   }
 
@@ -222,38 +236,167 @@ const BlockchainInfo = () => {
   return (
     <Container>
       {!error && (
-        <>
-          <Row className="mb-3">
-            <Col xs={12} md={6} lg={3}>
-              <strong>Name:</strong> {blockchainName}
+        <Row className="align-items-center gy-2 gx-5">
+          {" "}
+          {/* g-2 for some gutter space between items */}
+          {blockchainName && (
+            <Col
+              xs={12}
+              sm={6}
+              md={4}
+              lg={2}
+              className="d-flex align-items-center"
+            >
+              <span className="text-nowrap">
+                <strong>Name:&nbsp;</strong>
+                {blockchainName}
+              </span>
             </Col>
-            <Col xs={12} md={6} lg={3}>
-              <strong>Born On:</strong> {formatDate(bornOn)}
-            </Col>
-            <Col xs={12} md={6} lg={3}>
-              <strong>Height:</strong> {currentHeight}
-            </Col>
-            {difficulty && (
-              <Col xs={12} md={6} lg={3}>
-                <strong>Difficulty:</strong> {difficulty}
-              </Col>
-            )}
-            {!difficulty && <Col lg={3}></Col>}
-          </Row>
-          {totalSupply !== null && (
-            <Row>
-              <Col xs={12} lg={{ span: 6, offset: 3 }}>
-                <strong>Total Supply:</strong> {totalSupply}
-              </Col>
-            </Row>
           )}
-        </>
+          {bornOn && (
+            <Col
+              xs={12}
+              sm={6}
+              md={4}
+              lg={2}
+              className="d-flex align-items-center"
+            >
+              <span className="text-nowrap">
+                <strong>Born On:&nbsp;</strong>
+                {formatDate(bornOn)}
+              </span>
+            </Col>
+          )}
+          {currentHeight !== null && (
+            <Col
+              xs={12}
+              sm={6}
+              md={4}
+              lg={2}
+              className="d-flex align-items-center"
+            >
+              <span className="d-flex align-items-center text-nowrap">
+                <strong>Height:&nbsp;</strong>
+                {currentHeight}
+                <Button variant="link" onClick={handleRefresh}>
+                  <i className="bi bi-arrow-clockwise"></i>
+                </Button>
+              </span>
+            </Col>
+          )}
+          {difficulty && (
+            <Col
+              xs={12}
+              sm={6}
+              md={4}
+              lg={2}
+              className="d-flex align-items-center"
+            >
+              <span className="text-nowrap">
+                <strong>Difficulty:&nbsp;</strong>
+                {difficulty}
+              </span>
+            </Col>
+          )}
+          {hashRate && (
+            <Col
+              xs={12}
+              sm={6}
+              md={4}
+              lg={2}
+              className="d-flex align-items-center"
+            >
+              <span className="text-nowrap">
+                <strong>Hash Rate:&nbsp;</strong>
+                {parseInt(hashRate)}/s
+              </span>
+            </Col>
+          )}
+          {totalSupply !== null && (
+            <Col
+              xs={12}
+              sm={6}
+              md={4}
+              lg={2}
+              className="d-flex align-items-center"
+            >
+              <span className="text-nowrap">
+                <strong>Total Supply:&nbsp;</strong>
+                {totalSupply}
+              </span>
+            </Col>
+          )}
+        </Row>
       )}
     </Container>
   );
 };
 
 export default BlockchainInfo;
+
+```
+
+# src/Components/BlockchainIntegrity.jsx
+
+```javascript
+import React, { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchBlockchainIntegrity } from "../store/blockchainIntegritySlice";
+import { resetError } from "../store/blockchainIntegritySlice";
+import { Container, Alert, Button } from "react-bootstrap";
+
+const BlockchainIntegrity = () => {
+  const dispatch = useDispatch();
+  const {
+    isValid,
+    blockCount,
+    areHashesValid,
+    arePreviousHashesValid,
+    areTimestampsValid,
+    areIndexesValid,
+    validationErrors,
+    isLoading,
+    error,
+  } = useSelector((state) => state.blockchainIntegrity);
+
+  useEffect(() => {
+    dispatch(fetchBlockchainIntegrity());
+    return () => {
+      if (error) {
+        dispatch(resetError());
+      }
+    };
+  }, [dispatch, error]);
+
+  const handleRefresh = () => {
+    dispatch(fetchBlockchainIntegrity());
+  };
+
+  if (isLoading) return <div>Loading integrity data...</div>;
+
+  if (error) {
+    return (
+      <Alert variant="danger" className="d-flex align-items-center">
+        Error fetching integrity data: {error}{" "}
+        <Button variant="link" onClick={handleRefresh}>
+          <i className="bi bi-arrow-clockwise"></i>
+        </Button>
+      </Alert>
+    );
+  }
+
+  return (
+    <Container>
+      {isValid ? (
+        <p>The blockchain is valid</p>
+      ) : (
+        <p>The blockchain is not valid</p>
+      )}
+    </Container>
+  );
+};
+
+export default BlockchainIntegrity;
 
 ```
 
@@ -291,12 +434,10 @@ function ChainIntegrityChecker() {
     async function fetchChainIntegrity() {
       try {
         const response = await fetch("/api/chain/integrity");
-        console.log("response", response);
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         const data = await response.json();
-        console.log("data", data);
         setChainIntegrity({ isLoading: false, data, error: null });
       } catch (error) {
         setChainIntegrity({
@@ -351,12 +492,15 @@ export default Entries;
 ```javascript
 import React from "react";
 import BlockchainInfo from "./BlockchainInfo";
+import BlockchainIntegrity from "./BlockchainIntegrity";
 
 const Home = () => {
   return (
     <div>
-      <h1 className="h3">Blockchain Info</h1>
+      <h2 className="h3">Blockchain Info</h2>
       <BlockchainInfo />
+      <h2 className="h3 mt-3">Blockchain Integrity</h2>
+      <BlockchainIntegrity />
     </div>
   );
 };
@@ -478,7 +622,7 @@ import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 
 export const fetchBlockchainInfo = createAsyncThunk(
   "blockchainInfo/fetch",
-  async (_, thunkAPI) => {
+  async (_, { rejectWithValue }) => {
     try {
       const response = await fetch("/api/chain/info");
       if (!response.ok) {
@@ -487,7 +631,7 @@ export const fetchBlockchainInfo = createAsyncThunk(
       const data = await response.json();
       return data;
     } catch (error) {
-      return thunkAPI.rejectWithValue(error.message.toString());
+      return rejectWithValue(error.message);
     }
   }
 );
@@ -496,6 +640,7 @@ const initialState = {
   blockchainName: "",
   bornOn: null,
   currentHeight: 0,
+  hashRate: null,
   difficulty: null,
   totalSupply: null,
   isLoading: false,
@@ -505,16 +650,25 @@ const initialState = {
 const blockchainInfoSlice = createSlice({
   name: "blockchainInfo",
   initialState,
-  reducers: {},
+  reducers: {
+    resetError: (state) => {
+      state.error = null;
+    },
+  },
   extraReducers: (builder) => {
     builder
       .addCase(fetchBlockchainInfo.pending, (state) => {
-        state.isLoading = true;
+        if (!state.currentHeight) {
+          state.isLoading = true;
+        }
       })
       .addCase(fetchBlockchainInfo.fulfilled, (state, action) => {
         state.blockchainName = action.payload.blockchainName;
         state.bornOn = action.payload.bornOn;
         state.currentHeight = action.payload.currentHeight;
+        if ("hashRate" in action.payload) {
+          state.hashRate = action.payload.hashRate;
+        }
         if ("difficulty" in action.payload) {
           state.difficulty = action.payload.difficulty;
         }
@@ -522,6 +676,7 @@ const blockchainInfoSlice = createSlice({
           state.totalSupply = action.payload.totalSupply;
         }
         state.isLoading = false;
+        state.error = null;
       })
       .addCase(fetchBlockchainInfo.rejected, (state, action) => {
         state.isLoading = false;
@@ -530,7 +685,77 @@ const blockchainInfoSlice = createSlice({
   },
 });
 
+export const { resetError } = blockchainInfoSlice.actions;
+
 export default blockchainInfoSlice.reducer;
+
+```
+
+# src/store/blockchainIntegritySlice.js
+
+```javascript
+import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+
+export const fetchBlockchainIntegrity = createAsyncThunk(
+  "blockchainIntegrity/fetch",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await fetch("/api/chain/integrity");
+      if (!response.ok) {
+        throw new Error(`server responded with status: ${response.status}`);
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+export const blockchainIntegritySlice = createSlice({
+  name: "blockchainIntegrity",
+  initialState: {
+    isValid: true,
+    blockCount: 0,
+    areHashesValid: true,
+    arePreviousHashesValid: true,
+    areTimestampsValid: true,
+    areIndexesValid: true,
+    validationErrors: [],
+    isLoading: false,
+    error: null,
+  },
+  reducers: {
+    resetError: (state) => {
+      state.error = null;
+    },
+  },
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchBlockchainIntegrity.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(fetchBlockchainIntegrity.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.isValid = action.payload.isValid;
+        state.blockCount = action.payload.blockCount;
+        state.areHashesValid = action.payload.areHashesValid;
+        state.arePreviousHashesValid = action.payload.arePreviousHashesValid;
+        state.areTimestampsValid = action.payload.areTimestampsValid;
+        state.areIndexesValid = action.payload.areIndexesValid;
+        state.validationErrors = action.payload.errors || [];
+        state.error = null;
+      })
+      .addCase(fetchBlockchainIntegrity.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload;
+      });
+  },
+});
+
+export const { resetError } = blockchainIntegritySlice.actions;
+
+export default blockchainIntegritySlice.reducer;
 
 ```
 
@@ -539,10 +764,12 @@ export default blockchainInfoSlice.reducer;
 ```javascript
 import { configureStore } from "@reduxjs/toolkit";
 import blockchainInfoReducer from "./blockchainInfoSlice";
+import blockchainIntegrityReducer from "./blockchainIntegritySlice";
 
 const store = configureStore({
   reducer: {
     blockchainInfo: blockchainInfoReducer,
+    blockchainIntegrity: blockchainIntegrityReducer,
   },
 });
 
@@ -613,17 +840,17 @@ export default App;
 import React, { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchBlockchainInfo } from "../store/blockchainInfoSlice";
-import { Container, Row, Col, Alert } from "react-bootstrap";
-import { useLocation } from "react-router-dom";
+import { Container, Row, Col, Alert, Button } from "react-bootstrap";
+import { resetError } from "../store/blockchainInfoSlice";
 
 const BlockchainInfo = () => {
   const dispatch = useDispatch();
-  const location = useLocation();
   const {
     blockchainName,
     bornOn,
     currentHeight,
     difficulty,
+    hashRate,
     totalSupply,
     isLoading,
     error,
@@ -631,12 +858,26 @@ const BlockchainInfo = () => {
 
   useEffect(() => {
     dispatch(fetchBlockchainInfo());
-  }, [dispatch, location.pathname]);
+    return () => {
+      if (error) {
+        dispatch(resetError());
+      }
+    };
+  }, [dispatch, error]);
+
+  const handleRefresh = () => {
+    dispatch(fetchBlockchainInfo());
+  };
 
   if (isLoading) return <p>Loading blockchain info...</p>;
   if (error) {
     return (
-      <Alert variant="danger">Error fetching blockchain info: {error}</Alert>
+      <Alert variant="danger" className="d-flex align-items-center">
+        Error fetching blockchain info: {error}{" "}
+        <Button variant="link" onClick={handleRefresh}>
+          <i className="bi bi-arrow-clockwise"></i>
+        </Button>
+      </Alert>
     );
   }
 
@@ -647,38 +888,167 @@ const BlockchainInfo = () => {
   return (
     <Container>
       {!error && (
-        <>
-          <Row className="mb-3">
-            <Col xs={12} md={6} lg={3}>
-              <strong>Name:</strong> {blockchainName}
+        <Row className="align-items-center gy-2 gx-5">
+          {" "}
+          {/* g-2 for some gutter space between items */}
+          {blockchainName && (
+            <Col
+              xs={12}
+              sm={6}
+              md={4}
+              lg={2}
+              className="d-flex align-items-center"
+            >
+              <span className="text-nowrap">
+                <strong>Name:&nbsp;</strong>
+                {blockchainName}
+              </span>
             </Col>
-            <Col xs={12} md={6} lg={3}>
-              <strong>Born On:</strong> {formatDate(bornOn)}
-            </Col>
-            <Col xs={12} md={6} lg={3}>
-              <strong>Height:</strong> {currentHeight}
-            </Col>
-            {difficulty && (
-              <Col xs={12} md={6} lg={3}>
-                <strong>Difficulty:</strong> {difficulty}
-              </Col>
-            )}
-            {!difficulty && <Col lg={3}></Col>}
-          </Row>
-          {totalSupply !== null && (
-            <Row>
-              <Col xs={12} lg={{ span: 6, offset: 3 }}>
-                <strong>Total Supply:</strong> {totalSupply}
-              </Col>
-            </Row>
           )}
-        </>
+          {bornOn && (
+            <Col
+              xs={12}
+              sm={6}
+              md={4}
+              lg={2}
+              className="d-flex align-items-center"
+            >
+              <span className="text-nowrap">
+                <strong>Born On:&nbsp;</strong>
+                {formatDate(bornOn)}
+              </span>
+            </Col>
+          )}
+          {currentHeight !== null && (
+            <Col
+              xs={12}
+              sm={6}
+              md={4}
+              lg={2}
+              className="d-flex align-items-center"
+            >
+              <span className="d-flex align-items-center text-nowrap">
+                <strong>Height:&nbsp;</strong>
+                {currentHeight}
+                <Button variant="link" onClick={handleRefresh}>
+                  <i className="bi bi-arrow-clockwise"></i>
+                </Button>
+              </span>
+            </Col>
+          )}
+          {difficulty && (
+            <Col
+              xs={12}
+              sm={6}
+              md={4}
+              lg={2}
+              className="d-flex align-items-center"
+            >
+              <span className="text-nowrap">
+                <strong>Difficulty:&nbsp;</strong>
+                {difficulty}
+              </span>
+            </Col>
+          )}
+          {hashRate && (
+            <Col
+              xs={12}
+              sm={6}
+              md={4}
+              lg={2}
+              className="d-flex align-items-center"
+            >
+              <span className="text-nowrap">
+                <strong>Hash Rate:&nbsp;</strong>
+                {parseInt(hashRate)}/s
+              </span>
+            </Col>
+          )}
+          {totalSupply !== null && (
+            <Col
+              xs={12}
+              sm={6}
+              md={4}
+              lg={2}
+              className="d-flex align-items-center"
+            >
+              <span className="text-nowrap">
+                <strong>Total Supply:&nbsp;</strong>
+                {totalSupply}
+              </span>
+            </Col>
+          )}
+        </Row>
       )}
     </Container>
   );
 };
 
 export default BlockchainInfo;
+
+```
+
+# src/Components/BlockchainIntegrity.jsx
+
+```javascript
+import React, { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchBlockchainIntegrity } from "../store/blockchainIntegritySlice";
+import { resetError } from "../store/blockchainIntegritySlice";
+import { Container, Alert, Button } from "react-bootstrap";
+
+const BlockchainIntegrity = () => {
+  const dispatch = useDispatch();
+  const {
+    isValid,
+    blockCount,
+    areHashesValid,
+    arePreviousHashesValid,
+    areTimestampsValid,
+    areIndexesValid,
+    validationErrors,
+    isLoading,
+    error,
+  } = useSelector((state) => state.blockchainIntegrity);
+
+  useEffect(() => {
+    dispatch(fetchBlockchainIntegrity());
+    return () => {
+      if (error) {
+        dispatch(resetError());
+      }
+    };
+  }, [dispatch, error]);
+
+  const handleRefresh = () => {
+    dispatch(fetchBlockchainIntegrity());
+  };
+
+  if (isLoading) return <div>Loading integrity data...</div>;
+
+  if (error) {
+    return (
+      <Alert variant="danger" className="d-flex align-items-center">
+        Error fetching integrity data: {error}{" "}
+        <Button variant="link" onClick={handleRefresh}>
+          <i className="bi bi-arrow-clockwise"></i>
+        </Button>
+      </Alert>
+    );
+  }
+
+  return (
+    <Container>
+      {isValid ? (
+        <p>The blockchain is valid</p>
+      ) : (
+        <p>The blockchain is not valid</p>
+      )}
+    </Container>
+  );
+};
+
+export default BlockchainIntegrity;
 
 ```
 
@@ -716,12 +1086,10 @@ function ChainIntegrityChecker() {
     async function fetchChainIntegrity() {
       try {
         const response = await fetch("/api/chain/integrity");
-        console.log("response", response);
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         const data = await response.json();
-        console.log("data", data);
         setChainIntegrity({ isLoading: false, data, error: null });
       } catch (error) {
         setChainIntegrity({
@@ -776,12 +1144,15 @@ export default Entries;
 ```javascript
 import React from "react";
 import BlockchainInfo from "./BlockchainInfo";
+import BlockchainIntegrity from "./BlockchainIntegrity";
 
 const Home = () => {
   return (
     <div>
-      <h1 className="h3">Blockchain Info</h1>
+      <h2 className="h3">Blockchain Info</h2>
       <BlockchainInfo />
+      <h2 className="h3 mt-3">Blockchain Integrity</h2>
+      <BlockchainIntegrity />
     </div>
   );
 };
@@ -903,7 +1274,7 @@ import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 
 export const fetchBlockchainInfo = createAsyncThunk(
   "blockchainInfo/fetch",
-  async (_, thunkAPI) => {
+  async (_, { rejectWithValue }) => {
     try {
       const response = await fetch("/api/chain/info");
       if (!response.ok) {
@@ -912,7 +1283,7 @@ export const fetchBlockchainInfo = createAsyncThunk(
       const data = await response.json();
       return data;
     } catch (error) {
-      return thunkAPI.rejectWithValue(error.message.toString());
+      return rejectWithValue(error.message);
     }
   }
 );
@@ -921,6 +1292,7 @@ const initialState = {
   blockchainName: "",
   bornOn: null,
   currentHeight: 0,
+  hashRate: null,
   difficulty: null,
   totalSupply: null,
   isLoading: false,
@@ -930,16 +1302,25 @@ const initialState = {
 const blockchainInfoSlice = createSlice({
   name: "blockchainInfo",
   initialState,
-  reducers: {},
+  reducers: {
+    resetError: (state) => {
+      state.error = null;
+    },
+  },
   extraReducers: (builder) => {
     builder
       .addCase(fetchBlockchainInfo.pending, (state) => {
-        state.isLoading = true;
+        if (!state.currentHeight) {
+          state.isLoading = true;
+        }
       })
       .addCase(fetchBlockchainInfo.fulfilled, (state, action) => {
         state.blockchainName = action.payload.blockchainName;
         state.bornOn = action.payload.bornOn;
         state.currentHeight = action.payload.currentHeight;
+        if ("hashRate" in action.payload) {
+          state.hashRate = action.payload.hashRate;
+        }
         if ("difficulty" in action.payload) {
           state.difficulty = action.payload.difficulty;
         }
@@ -947,6 +1328,7 @@ const blockchainInfoSlice = createSlice({
           state.totalSupply = action.payload.totalSupply;
         }
         state.isLoading = false;
+        state.error = null;
       })
       .addCase(fetchBlockchainInfo.rejected, (state, action) => {
         state.isLoading = false;
@@ -955,7 +1337,77 @@ const blockchainInfoSlice = createSlice({
   },
 });
 
+export const { resetError } = blockchainInfoSlice.actions;
+
 export default blockchainInfoSlice.reducer;
+
+```
+
+# src/store/blockchainIntegritySlice.js
+
+```javascript
+import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+
+export const fetchBlockchainIntegrity = createAsyncThunk(
+  "blockchainIntegrity/fetch",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await fetch("/api/chain/integrity");
+      if (!response.ok) {
+        throw new Error(`server responded with status: ${response.status}`);
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+export const blockchainIntegritySlice = createSlice({
+  name: "blockchainIntegrity",
+  initialState: {
+    isValid: true,
+    blockCount: 0,
+    areHashesValid: true,
+    arePreviousHashesValid: true,
+    areTimestampsValid: true,
+    areIndexesValid: true,
+    validationErrors: [],
+    isLoading: false,
+    error: null,
+  },
+  reducers: {
+    resetError: (state) => {
+      state.error = null;
+    },
+  },
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchBlockchainIntegrity.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(fetchBlockchainIntegrity.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.isValid = action.payload.isValid;
+        state.blockCount = action.payload.blockCount;
+        state.areHashesValid = action.payload.areHashesValid;
+        state.arePreviousHashesValid = action.payload.arePreviousHashesValid;
+        state.areTimestampsValid = action.payload.areTimestampsValid;
+        state.areIndexesValid = action.payload.areIndexesValid;
+        state.validationErrors = action.payload.errors || [];
+        state.error = null;
+      })
+      .addCase(fetchBlockchainIntegrity.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload;
+      });
+  },
+});
+
+export const { resetError } = blockchainIntegritySlice.actions;
+
+export default blockchainIntegritySlice.reducer;
 
 ```
 
@@ -964,10 +1416,12 @@ export default blockchainInfoSlice.reducer;
 ```javascript
 import { configureStore } from "@reduxjs/toolkit";
 import blockchainInfoReducer from "./blockchainInfoSlice";
+import blockchainIntegrityReducer from "./blockchainIntegritySlice";
 
 const store = configureStore({
   reducer: {
     blockchainInfo: blockchainInfoReducer,
+    blockchainIntegrity: blockchainIntegrityReducer,
   },
 });
 

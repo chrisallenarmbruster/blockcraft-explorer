@@ -1,14 +1,16 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+import { fetchBlockchainIntegrity } from "./blockchainIntegritySlice";
 
 export const fetchBlockchainInfo = createAsyncThunk(
   "blockchainInfo/fetch",
-  async (_, { rejectWithValue }) => {
+  async (_, { dispatch, rejectWithValue }) => {
     try {
       const response = await fetch("/api/chain/info");
       if (!response.ok) {
         throw new Error(`server responded with status: ${response.status}`);
       }
       const data = await response.json();
+      dispatch(fetchBlockchainIntegrity());
       return data;
     } catch (error) {
       return rejectWithValue(error.message);

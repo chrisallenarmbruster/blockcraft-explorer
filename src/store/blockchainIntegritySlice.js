@@ -37,7 +37,9 @@ export const blockchainIntegritySlice = createSlice({
   extraReducers: (builder) => {
     builder
       .addCase(fetchBlockchainIntegrity.pending, (state) => {
-        state.isLoading = true;
+        if (!state.blockCount) {
+          state.isLoading = true;
+        }
       })
       .addCase(fetchBlockchainIntegrity.fulfilled, (state, action) => {
         state.isLoading = false;
