@@ -1,3 +1,8 @@
+/*
+  File: ValidationIcon.jsx
+  Description: This component displays a validation icon along with a label. If the validation fails, it also displays an alert with the details of the related errors. The icon, label, and errors are passed as props to the component. The icon changes based on the 'isValid' prop, and the alert is only displayed if there are errors.  This component is consumed by the BlockchainIntegrity component. 
+*/
+
 import React from "react";
 import { Alert, ListGroup } from "react-bootstrap";
 

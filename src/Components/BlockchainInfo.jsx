@@ -1,3 +1,8 @@
+/*
+  File: BlockchainInfo.jsx
+  Description: This component fetches and displays information about the blockchain. It uses the Redux store to manage state and dispatch actions. The information displayed includes the blockchain's name, creation date, current height, difficulty, hash rate, and total supply only when applicable. If there's an error fetching the data, an error message is displayed with a button to retry the fetch operation.
+*/
+
 import React, { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchBlockchainInfo } from "../store/blockchainInfoSlice";

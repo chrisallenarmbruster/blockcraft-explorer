@@ -1,3 +1,8 @@
+/*
+  File: NavBar.jsx
+  Description: This component renders the navigation bar for the application. It includes navigation links as well as a search form.
+*/
+
 import React from "react";
 import { Link } from "react-router-dom";
 import {

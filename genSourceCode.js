@@ -1,3 +1,8 @@
+/*
+  File: genSourceCode.js
+  Description: This script generates a markdown file that includes all the source code of the application. It recursively finds all .js, .jsx, README.md, and package.json files in the project directory, excluding the node_modules, dist, and public directories. For each file found, it determines the language based on the file extension, reads the file content, and appends it to the markdown file with appropriate markdown formatting. The markdown file is saved in the same directory as this script.
+*/
+
 import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";

@@ -1,3 +1,8 @@
+/*
+  File: blockchainInfoSlice.js
+  Description: This Redux slice manages the state and actions related to the blockchain information. It includes an async thunk to fetch the blockchain information from the blockchain node, and reducers to handle the different states of the fetch operation (pending, fulfilled, rejected). The slice also includes a reducer to reset any error that occurred during the fetch operation. The state includes the blockchain's name, creation date, current height, hash rate, difficulty, total supply, loading status, and any error message when such data is applicable.
+*/
+
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { fetchBlockchainIntegrity } from "./blockchainIntegritySlice";
 
@@ -7,6 +12,7 @@ export const fetchBlockchainInfo = createAsyncThunk(
     try {
       const response = await fetch("/api/chain/info");
       if (!response.ok) {
+        dispatch(fetchBlockchainIntegrity());
         throw new Error(`server responded with status: ${response.status}`);
       }
       const data = await response.json();

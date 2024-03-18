@@ -1,3 +1,8 @@
+/*
+  File: blockchainIntegritySlice.js
+  Description: This Redux slice manages the state and actions related to the blockchain integrity. It includes an async thunk to fetch the blockchain integrity from the node, and reducers to handle the different states of the fetch operation (pending, fulfilled, rejected). The slice also includes a reducer to reset any error that occurred during the fetch operation. The state includes the blockchain's validity, block count, hash validity, previous hash validity, timestamp validity, index validity, validation errors, loading status, and any error message when such data is applicable.
+*/
+
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 
 export const fetchBlockchainIntegrity = createAsyncThunk(

@@ -1,3 +1,9 @@
+/*
+  File: index.jsx
+  Description: Starting point for React application (gets injected into index.html). 
+  Redux store, client router, component entry point and style imports can be found in this file.
+*/
+
 import React from "react";
 import { createRoot } from "react-dom/client";
 import App from "./Components/App";

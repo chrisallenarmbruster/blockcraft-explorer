@@ -1,3 +1,8 @@
+/*
+  File: BlockchainIntegrity.jsx
+  Description: This component fetches and displays the integrity of the blockchain. It uses the Redux store to manage state and dispatch actions. The component checks the overall validation, block hash validation, previous hash validation, timestamp validation, and index validation. If there's an error fetching the data, an error message is displayed with a button to retry the fetch operation.
+*/
+
 import React, { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchBlockchainIntegrity } from "../store/blockchainIntegritySlice";

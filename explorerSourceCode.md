@@ -10,6 +10,11 @@ React frontend for my Blockcraft blockchain package
 # genSourceCode.js
 
 ```javascript
+/*
+  File: genSourceCode.js
+  Description: This script generates a markdown file that includes all the source code of the application. It recursively finds all .js, .jsx, README.md, and package.json files in the project directory, excluding the node_modules, dist, and public directories. For each file found, it determines the language based on the file extension, reads the file content, and appends it to the markdown file with appropriate markdown formatting. The markdown file is saved in the same directory as this script.
+*/
+
 import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -150,6 +155,11 @@ processFiles();
 # src/Components/App.jsx
 
 ```javascript
+/*
+  File: App.jsx
+  Description: This is the main application component. It integrates the navigation bar and routing for the application.
+*/
+
 import React from "react";
 import { Routes, Route } from "react-router-dom";
 import ChainIntegrityChecker from "./ChainIntegrityChecker";
@@ -185,6 +195,11 @@ export default App;
 # src/Components/BlockchainInfo.jsx
 
 ```javascript
+/*
+  File: BlockchainInfo.jsx
+  Description: This component fetches and displays information about the blockchain. It uses the Redux store to manage state and dispatch actions. The information displayed includes the blockchain's name, creation date, current height, difficulty, hash rate, and total supply only when applicable. If there's an error fetching the data, an error message is displayed with a button to retry the fetch operation.
+*/
+
 import React, { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchBlockchainInfo } from "../store/blockchainInfoSlice";
@@ -339,11 +354,17 @@ export default BlockchainInfo;
 # src/Components/BlockchainIntegrity.jsx
 
 ```javascript
+/*
+  File: BlockchainIntegrity.jsx
+  Description: This component fetches and displays the integrity of the blockchain. It uses the Redux store to manage state and dispatch actions. The component checks the overall validation, block hash validation, previous hash validation, timestamp validation, and index validation. If there's an error fetching the data, an error message is displayed with a button to retry the fetch operation.
+*/
+
 import React, { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchBlockchainIntegrity } from "../store/blockchainIntegritySlice";
 import { resetError } from "../store/blockchainIntegritySlice";
-import { Container, Alert, Button } from "react-bootstrap";
+import { Container, Alert, Button, ListGroup } from "react-bootstrap";
+import ValidationIcon from "./ValidationIcon";
 
 const BlockchainIntegrity = () => {
   const dispatch = useDispatch();
@@ -358,6 +379,10 @@ const BlockchainIntegrity = () => {
     isLoading,
     error,
   } = useSelector((state) => state.blockchainIntegrity);
+
+  const uniqueFailingBlocksCount = validationErrors.reduce((acc, error) => {
+    return acc.add(error.blockNumber);
+  }, new Set()).size;
 
   useEffect(() => {
     dispatch(fetchBlockchainIntegrity());
@@ -387,11 +412,42 @@ const BlockchainIntegrity = () => {
 
   return (
     <Container>
-      {isValid ? (
-        <p>The blockchain is valid</p>
-      ) : (
-        <p>The blockchain is not valid</p>
-      )}
+      <ListGroup variant="flush" className="border-0">
+        <ValidationIcon
+          isValid={isValid}
+          label={`Overall Validation: ${blockCount} blocks analyzed,  ${
+            blockCount - uniqueFailingBlocksCount
+          } passed, ${uniqueFailingBlocksCount} failed.`}
+        />
+        <ValidationIcon
+          isValid={areHashesValid}
+          label="Block Hash Validation"
+          errors={validationErrors.filter(
+            (error) => error.errorType === "hash"
+          )}
+        />
+        <ValidationIcon
+          isValid={arePreviousHashesValid}
+          label="Previous Hash Validation"
+          errors={validationErrors.filter(
+            (error) => error.errorType === "previousHash"
+          )}
+        />
+        <ValidationIcon
+          isValid={areTimestampsValid}
+          label="Timestamp Validation"
+          errors={validationErrors.filter(
+            (error) => error.errorType === "timestamp"
+          )}
+        />
+        <ValidationIcon
+          isValid={areIndexesValid}
+          label="Index Validation"
+          errors={validationErrors.filter(
+            (error) => error.errorType === "index"
+          )}
+        />
+      </ListGroup>
     </Container>
   );
 };
@@ -512,6 +568,11 @@ export default Home;
 # src/Components/NavBar.jsx
 
 ```javascript
+/*
+  File: NavBar.jsx
+  Description: This component renders the navigation bar for the application. It includes navigation links as well as a search form.
+*/
+
 import React from "react";
 import { Link } from "react-router-dom";
 import {
@@ -590,9 +651,54 @@ export default Nodes;
 
 ```
 
+# src/Components/ValidationIcon.jsx
+
+```javascript
+/*
+  File: ValidationIcon.jsx
+  Description: This component displays a validation icon along with a label. If the validation fails, it also displays an alert with the details of the related errors. The icon, label, and errors are passed as props to the component. The icon changes based on the 'isValid' prop, and the alert is only displayed if there are errors.  This component is consumed by the BlockchainIntegrity component. 
+*/
+
+import React from "react";
+import { Alert, ListGroup } from "react-bootstrap";
+
+const ValidationIcon = ({ isValid, label, errors = [] }) => {
+  return (
+    <ListGroup.Item className="border-0">
+      <span className="me-3">
+        {isValid ? (
+          <i className="bi bi-check-lg text-success"></i>
+        ) : (
+          <i className="bi bi-x-lg text-danger"></i>
+        )}
+      </span>
+      <span className="fw-bold">{label}</span>
+      {errors.length > 0 && (
+        <Alert variant="danger" className="ms-4 mt-3">
+          {errors.map((error, index) => (
+            <p key={index} className="my-0">
+              Block {error.blockNumber} failed {error.errorType} validation test
+            </p>
+          ))}
+        </Alert>
+      )}
+    </ListGroup.Item>
+  );
+};
+
+export default ValidationIcon;
+
+```
+
 # src/index.jsx
 
 ```javascript
+/*
+  File: index.jsx
+  Description: Starting point for React application (gets injected into index.html). 
+  Redux store, client router, component entry point and style imports can be found in this file.
+*/
+
 import React from "react";
 import { createRoot } from "react-dom/client";
 import App from "./Components/App";
@@ -618,17 +724,25 @@ root.render(
 # src/store/blockchainInfoSlice.js
 
 ```javascript
+/*
+  File: blockchainInfoSlice.js
+  Description: This Redux slice manages the state and actions related to the blockchain information. It includes an async thunk to fetch the blockchain information from the blockchain node, and reducers to handle the different states of the fetch operation (pending, fulfilled, rejected). The slice also includes a reducer to reset any error that occurred during the fetch operation. The state includes the blockchain's name, creation date, current height, hash rate, difficulty, total supply, loading status, and any error message when such data is applicable.
+*/
+
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+import { fetchBlockchainIntegrity } from "./blockchainIntegritySlice";
 
 export const fetchBlockchainInfo = createAsyncThunk(
   "blockchainInfo/fetch",
-  async (_, { rejectWithValue }) => {
+  async (_, { dispatch, rejectWithValue }) => {
     try {
       const response = await fetch("/api/chain/info");
       if (!response.ok) {
+        dispatch(fetchBlockchainIntegrity());
         throw new Error(`server responded with status: ${response.status}`);
       }
       const data = await response.json();
+      dispatch(fetchBlockchainIntegrity());
       return data;
     } catch (error) {
       return rejectWithValue(error.message);
@@ -694,6 +808,11 @@ export default blockchainInfoSlice.reducer;
 # src/store/blockchainIntegritySlice.js
 
 ```javascript
+/*
+  File: blockchainIntegritySlice.js
+  Description: This Redux slice manages the state and actions related to the blockchain integrity. It includes an async thunk to fetch the blockchain integrity from the node, and reducers to handle the different states of the fetch operation (pending, fulfilled, rejected). The slice also includes a reducer to reset any error that occurred during the fetch operation. The state includes the blockchain's validity, block count, hash validity, previous hash validity, timestamp validity, index validity, validation errors, loading status, and any error message when such data is applicable.
+*/
+
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 
 export const fetchBlockchainIntegrity = createAsyncThunk(
@@ -733,7 +852,9 @@ export const blockchainIntegritySlice = createSlice({
   extraReducers: (builder) => {
     builder
       .addCase(fetchBlockchainIntegrity.pending, (state) => {
-        state.isLoading = true;
+        if (!state.blockCount) {
+          state.isLoading = true;
+        }
       })
       .addCase(fetchBlockchainIntegrity.fulfilled, (state, action) => {
         state.isLoading = false;
@@ -762,6 +883,11 @@ export default blockchainIntegritySlice.reducer;
 # src/store/index.js
 
 ```javascript
+/*
+  File: index.js
+  Description: This file sets up the Redux store for the application. It imports the reducers from each of the redux slice files and combines them using the configureStore function from Redux Toolkit. The resulting store is then exported for use in the application.
+*/
+
 import { configureStore } from "@reduxjs/toolkit";
 import blockchainInfoReducer from "./blockchainInfoSlice";
 import blockchainIntegrityReducer from "./blockchainIntegritySlice";
@@ -788,6 +914,7 @@ export default defineConfig({
   root: ".",
   publicDir: "public",
   server: {
+    port: 8080,
     proxy: {
       "/api": {
         target: "http://localhost:3000",
@@ -802,6 +929,11 @@ export default defineConfig({
 # src/Components/App.jsx
 
 ```javascript
+/*
+  File: App.jsx
+  Description: This is the main application component. It integrates the navigation bar and routing for the application.
+*/
+
 import React from "react";
 import { Routes, Route } from "react-router-dom";
 import ChainIntegrityChecker from "./ChainIntegrityChecker";
@@ -837,6 +969,11 @@ export default App;
 # src/Components/BlockchainInfo.jsx
 
 ```javascript
+/*
+  File: BlockchainInfo.jsx
+  Description: This component fetches and displays information about the blockchain. It uses the Redux store to manage state and dispatch actions. The information displayed includes the blockchain's name, creation date, current height, difficulty, hash rate, and total supply only when applicable. If there's an error fetching the data, an error message is displayed with a button to retry the fetch operation.
+*/
+
 import React, { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchBlockchainInfo } from "../store/blockchainInfoSlice";
@@ -991,11 +1128,17 @@ export default BlockchainInfo;
 # src/Components/BlockchainIntegrity.jsx
 
 ```javascript
+/*
+  File: BlockchainIntegrity.jsx
+  Description: This component fetches and displays the integrity of the blockchain. It uses the Redux store to manage state and dispatch actions. The component checks the overall validation, block hash validation, previous hash validation, timestamp validation, and index validation. If there's an error fetching the data, an error message is displayed with a button to retry the fetch operation.
+*/
+
 import React, { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchBlockchainIntegrity } from "../store/blockchainIntegritySlice";
 import { resetError } from "../store/blockchainIntegritySlice";
-import { Container, Alert, Button } from "react-bootstrap";
+import { Container, Alert, Button, ListGroup } from "react-bootstrap";
+import ValidationIcon from "./ValidationIcon";
 
 const BlockchainIntegrity = () => {
   const dispatch = useDispatch();
@@ -1010,6 +1153,10 @@ const BlockchainIntegrity = () => {
     isLoading,
     error,
   } = useSelector((state) => state.blockchainIntegrity);
+
+  const uniqueFailingBlocksCount = validationErrors.reduce((acc, error) => {
+    return acc.add(error.blockNumber);
+  }, new Set()).size;
 
   useEffect(() => {
     dispatch(fetchBlockchainIntegrity());
@@ -1039,11 +1186,42 @@ const BlockchainIntegrity = () => {
 
   return (
     <Container>
-      {isValid ? (
-        <p>The blockchain is valid</p>
-      ) : (
-        <p>The blockchain is not valid</p>
-      )}
+      <ListGroup variant="flush" className="border-0">
+        <ValidationIcon
+          isValid={isValid}
+          label={`Overall Validation: ${blockCount} blocks analyzed,  ${
+            blockCount - uniqueFailingBlocksCount
+          } passed, ${uniqueFailingBlocksCount} failed.`}
+        />
+        <ValidationIcon
+          isValid={areHashesValid}
+          label="Block Hash Validation"
+          errors={validationErrors.filter(
+            (error) => error.errorType === "hash"
+          )}
+        />
+        <ValidationIcon
+          isValid={arePreviousHashesValid}
+          label="Previous Hash Validation"
+          errors={validationErrors.filter(
+            (error) => error.errorType === "previousHash"
+          )}
+        />
+        <ValidationIcon
+          isValid={areTimestampsValid}
+          label="Timestamp Validation"
+          errors={validationErrors.filter(
+            (error) => error.errorType === "timestamp"
+          )}
+        />
+        <ValidationIcon
+          isValid={areIndexesValid}
+          label="Index Validation"
+          errors={validationErrors.filter(
+            (error) => error.errorType === "index"
+          )}
+        />
+      </ListGroup>
     </Container>
   );
 };
@@ -1164,6 +1342,11 @@ export default Home;
 # src/Components/NavBar.jsx
 
 ```javascript
+/*
+  File: NavBar.jsx
+  Description: This component renders the navigation bar for the application. It includes navigation links as well as a search form.
+*/
+
 import React from "react";
 import { Link } from "react-router-dom";
 import {
@@ -1242,9 +1425,54 @@ export default Nodes;
 
 ```
 
+# src/Components/ValidationIcon.jsx
+
+```javascript
+/*
+  File: ValidationIcon.jsx
+  Description: This component displays a validation icon along with a label. If the validation fails, it also displays an alert with the details of the related errors. The icon, label, and errors are passed as props to the component. The icon changes based on the 'isValid' prop, and the alert is only displayed if there are errors.  This component is consumed by the BlockchainIntegrity component. 
+*/
+
+import React from "react";
+import { Alert, ListGroup } from "react-bootstrap";
+
+const ValidationIcon = ({ isValid, label, errors = [] }) => {
+  return (
+    <ListGroup.Item className="border-0">
+      <span className="me-3">
+        {isValid ? (
+          <i className="bi bi-check-lg text-success"></i>
+        ) : (
+          <i className="bi bi-x-lg text-danger"></i>
+        )}
+      </span>
+      <span className="fw-bold">{label}</span>
+      {errors.length > 0 && (
+        <Alert variant="danger" className="ms-4 mt-3">
+          {errors.map((error, index) => (
+            <p key={index} className="my-0">
+              Block {error.blockNumber} failed {error.errorType} validation test
+            </p>
+          ))}
+        </Alert>
+      )}
+    </ListGroup.Item>
+  );
+};
+
+export default ValidationIcon;
+
+```
+
 # src/index.jsx
 
 ```javascript
+/*
+  File: index.jsx
+  Description: Starting point for React application (gets injected into index.html). 
+  Redux store, client router, component entry point and style imports can be found in this file.
+*/
+
 import React from "react";
 import { createRoot } from "react-dom/client";
 import App from "./Components/App";
@@ -1270,17 +1498,25 @@ root.render(
 # src/store/blockchainInfoSlice.js
 
 ```javascript
+/*
+  File: blockchainInfoSlice.js
+  Description: This Redux slice manages the state and actions related to the blockchain information. It includes an async thunk to fetch the blockchain information from the blockchain node, and reducers to handle the different states of the fetch operation (pending, fulfilled, rejected). The slice also includes a reducer to reset any error that occurred during the fetch operation. The state includes the blockchain's name, creation date, current height, hash rate, difficulty, total supply, loading status, and any error message when such data is applicable.
+*/
+
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+import { fetchBlockchainIntegrity } from "./blockchainIntegritySlice";
 
 export const fetchBlockchainInfo = createAsyncThunk(
   "blockchainInfo/fetch",
-  async (_, { rejectWithValue }) => {
+  async (_, { dispatch, rejectWithValue }) => {
     try {
       const response = await fetch("/api/chain/info");
       if (!response.ok) {
+        dispatch(fetchBlockchainIntegrity());
         throw new Error(`server responded with status: ${response.status}`);
       }
       const data = await response.json();
+      dispatch(fetchBlockchainIntegrity());
       return data;
     } catch (error) {
       return rejectWithValue(error.message);
@@ -1346,6 +1582,11 @@ export default blockchainInfoSlice.reducer;
 # src/store/blockchainIntegritySlice.js
 
 ```javascript
+/*
+  File: blockchainIntegritySlice.js
+  Description: This Redux slice manages the state and actions related to the blockchain integrity. It includes an async thunk to fetch the blockchain integrity from the node, and reducers to handle the different states of the fetch operation (pending, fulfilled, rejected). The slice also includes a reducer to reset any error that occurred during the fetch operation. The state includes the blockchain's validity, block count, hash validity, previous hash validity, timestamp validity, index validity, validation errors, loading status, and any error message when such data is applicable.
+*/
+
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 
 export const fetchBlockchainIntegrity = createAsyncThunk(
@@ -1385,7 +1626,9 @@ export const blockchainIntegritySlice = createSlice({
   extraReducers: (builder) => {
     builder
       .addCase(fetchBlockchainIntegrity.pending, (state) => {
-        state.isLoading = true;
+        if (!state.blockCount) {
+          state.isLoading = true;
+        }
       })
       .addCase(fetchBlockchainIntegrity.fulfilled, (state, action) => {
         state.isLoading = false;
@@ -1414,6 +1657,11 @@ export default blockchainIntegritySlice.reducer;
 # src/store/index.js
 
 ```javascript
+/*
+  File: index.js
+  Description: This file sets up the Redux store for the application. It imports the reducers from each of the redux slice files and combines them using the configureStore function from Redux Toolkit. The resulting store is then exported for use in the application.
+*/
+
 import { configureStore } from "@reduxjs/toolkit";
 import blockchainInfoReducer from "./blockchainInfoSlice";
 import blockchainIntegrityReducer from "./blockchainIntegritySlice";

@@ -1,3 +1,8 @@
+/*
+  File: App.jsx
+  Description: This is the main application component. It integrates the navigation bar and routing for the application.
+*/
+
 import React from "react";
 import { Routes, Route } from "react-router-dom";
 import ChainIntegrityChecker from "./ChainIntegrityChecker";
