@@ -18,15 +18,13 @@ Welcome to the Blockcraft Explorer, my official React/Redux frontend for the Blo
 
 ### Installation 💿
 
-To use the Blockcraft Explorer in your project, you can install it directly from GitHub via npm. Run the following command in your project directory:
+The Blockcraft Explorer is a key part of the Blockcraft ecosystem, designed to seamlessly integrate with your Blockcraft blockchain. It's automatically installed as a dependency when you install the main Blockcraft package, so there's no need for manual installation in most cases. You only need to do this if wanting to customize Blockcraft Explorer. If wanting to customize, run the following command in your project directory:
 
 ```bash
 npm install git+https://github.com/chrisallenarmbruster/blockcraft-explorer.git
 ```
 
 ## Usage 🛠
-
-The Blockcraft Explorer is a key part of the Blockcraft ecosystem, designed to seamlessly integrate with your Blockcraft blockchain. It's automatically installed as a dependency when you install the main Blockcraft package, so there's no need for manual installation in most cases.
 
 ### Serving Blockcraft Explorer 🌐
 
