@@ -226,6 +226,7 @@ import ChainIntegrityChecker from "./ChainIntegrityChecker";
 import NavBar from "./NavBar";
 import Home from "./Home";
 import Blocks from "./Blocks";
+import BlocksInfiniteScroll from "./BlocksInfiniteScroll";
 import Entries from "./Entries";
 import Nodes from "./Nodes";
 import { Container } from "react-bootstrap";
@@ -237,7 +238,7 @@ function App() {
       <Container className="mt-3">
         <Routes>
           <Route exact path="/" element={<Home />} />
-          <Route path="/blocks" element={<Blocks />} />
+          <Route path="/blocks" element={<BlocksInfiniteScroll />} />
           <Route path="/entries" element={<Entries />} />
           <Route path="/integrity" element={<ChainIntegrityChecker />} />
           <Route path="/nodes" element={<Nodes />} />
@@ -519,18 +520,143 @@ export default BlockchainIntegrity;
 # src/Components/Blocks.jsx
 
 ```javascript
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import { fetchBlocks, resetError } from "../store/blocksSlice"; // Adjust the import path as needed
 
 const Blocks = () => {
+  const dispatch = useDispatch();
+  const {
+    blocks,
+    isLoading,
+    sort,
+    lastFetchedIndex,
+    nextIndexReference,
+    error,
+  } = useSelector((state) => state.blocks);
+  const [isFetching, setIsFetching] = useState(false);
+
+  useEffect(() => {
+    if (!blocks.length && !isLoading) {
+      dispatch(fetchBlocks({ sort: "asc" }));
+    }
+  }, [dispatch, blocks.length]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const nearBottom =
+        window.innerHeight + window.scrollY >=
+        document.documentElement.offsetHeight - 100;
+      const nearTop = window.scrollY <= 100;
+      if (
+        (nearBottom && sort === "asc") ||
+        (nearTop && nextIndexReference && sort === "asc")
+      ) {
+        if (!isFetching) {
+          setIsFetching(true);
+          fetchMoreBlocks();
+        }
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [isFetching, sort]);
+
+  const fetchMoreBlocks = () => {
+    dispatch(
+      fetchBlocks({
+        startWithIndex: lastFetchedIndex + 1,
+        sort,
+        limit: 10,
+      })
+    ).finally(() => setIsFetching(false));
+  };
+
+  const switchSortOrder = () => {
+    const newSortOrder = sort === "asc" ? "desc" : "asc";
+    dispatch(fetchBlocks({ sort: newSortOrder }));
+  };
+
   return (
     <div>
-      <h1>Welcome to Blocks Page</h1>
-      <p>This is the Blocks page of our application.</p>
+      <button onClick={switchSortOrder}>
+        Switch Sort Order (Current: {sort.toUpperCase()})
+      </button>
+      {error && <p>Error fetching blocks: {error} </p>}
+      <ul>
+        {blocks.map((block, index) => (
+          <li key={index}>
+            Block {block.index}: {block.hash}
+          </li>
+        ))}
+      </ul>
+      {isLoading && <p>Loading...</p>}
     </div>
   );
 };
 
 export default Blocks;
+
+```
+
+# src/Components/BlocksInfiniteScroll.jsx
+
+```javascript
+import React, { useEffect, useState } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import { fetchBlocks } from "../store/blocksSlice"; // Adjust the import path as needed
+
+const BlocksInfiniteScroll = () => {
+  const dispatch = useDispatch();
+  const { blocks, isLoading, nextIndexReference, error } = useSelector(
+    (state) => state.blocks
+  );
+  const [fetching, setFetching] = useState(false);
+
+  // Initial fetch
+  useEffect(() => {
+    if (!blocks.length && !isLoading) dispatch(fetchBlocks({}));
+  }, [blocks.length, isLoading, dispatch]);
+
+  // Scroll event handler
+  useEffect(() => {
+    const handleScroll = () => {
+      if (
+        window.innerHeight + document.documentElement.scrollTop !==
+          document.documentElement.offsetHeight ||
+        fetching
+      )
+        return;
+      setFetching(true);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [fetching]);
+
+  // Fetch more blocks on scroll
+  useEffect(() => {
+    if (fetching && nextIndexReference) {
+      dispatch(fetchBlocks({ startWithIndex: nextIndexReference }));
+      setFetching(false);
+    }
+  }, [fetching, nextIndexReference, dispatch]);
+
+  return (
+    <div>
+      {blocks.map((block, index) => (
+        <div key={index}>
+          Block {block.index}: {block.hash}
+        </div>
+      ))}
+      {isLoading && <p>Loading more blocks...</p>}
+      {error && <p>Error fetching blocks: {error}</p>}
+    </div>
+  );
+};
+
+export default BlocksInfiniteScroll;
 
 ```
 
@@ -940,6 +1066,89 @@ export default blockchainIntegritySlice.reducer;
 
 ```
 
+# src/store/blocksSlice.js
+
+```javascript
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+
+const initialState = {
+  blocks: [],
+  blockIds: {},
+  isLoading: false,
+  sort: "desc",
+  lastFetchedIndex: null,
+  nextIndexReference: null,
+  error: null,
+};
+
+export const fetchBlocks = createAsyncThunk(
+  "blocks/fetchBlocks",
+  async (
+    { startWithIndex = 0, limit = 10, sort = "asc" },
+    { rejectWithValue }
+  ) => {
+    console.log(startWithIndex, limit, sort);
+    try {
+      const response = await fetch(
+        `/api/blocks?limit=${limit}&sort=${sort}&startWithIndex=${startWithIndex}`
+      );
+
+      if (!response.ok) throw new Error("Network response was not ok");
+      const data = await response.json();
+      console.log(data);
+      return data;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+export const blocksSlice = createSlice({
+  name: "blocks",
+  initialState,
+  reducers: {
+    resetError: (state) => {
+      state.error = null;
+    },
+  },
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchBlocks.pending, (state, action) => {
+        if (!state.blocks.length) {
+          state.isLoading = true;
+        }
+      })
+      .addCase(fetchBlocks.fulfilled, (state, action) => {
+        const { blocks, meta } = action.payload;
+
+        const newBlocks = blocks.filter(
+          (block) => !state.blockIds[block.index]
+        );
+        newBlocks.forEach((block) => (state.blockIds[block.index] = true));
+
+        state.isLoading = false;
+        state.blocks =
+          state.sort === "asc"
+            ? [...state.blocks, ...newBlocks]
+            : [...newBlocks, ...state.blocks];
+
+        state.lastFetchedIndex = meta.lastIndexInResponse;
+        state.nextIndexReference = meta.nextIndexReference;
+        state.sort = meta.sort;
+        state.error = null;
+      })
+      .addCase(fetchBlocks.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload;
+      });
+  },
+});
+
+export const { resetError } = blocksSlice.actions;
+export default blocksSlice.reducer;
+
+```
+
 # src/store/index.js
 
 ```javascript
@@ -951,11 +1160,13 @@ export default blockchainIntegritySlice.reducer;
 import { configureStore } from "@reduxjs/toolkit";
 import blockchainInfoReducer from "./blockchainInfoSlice";
 import blockchainIntegrityReducer from "./blockchainIntegritySlice";
+import blocksReducer from "./blocksSlice";
 
 const store = configureStore({
   reducer: {
     blockchainInfo: blockchainInfoReducer,
     blockchainIntegrity: blockchainIntegrityReducer,
+    blocks: blocksReducer,
   },
 });
 
@@ -1000,6 +1211,7 @@ import ChainIntegrityChecker from "./ChainIntegrityChecker";
 import NavBar from "./NavBar";
 import Home from "./Home";
 import Blocks from "./Blocks";
+import BlocksInfiniteScroll from "./BlocksInfiniteScroll";
 import Entries from "./Entries";
 import Nodes from "./Nodes";
 import { Container } from "react-bootstrap";
@@ -1011,7 +1223,7 @@ function App() {
       <Container className="mt-3">
         <Routes>
           <Route exact path="/" element={<Home />} />
-          <Route path="/blocks" element={<Blocks />} />
+          <Route path="/blocks" element={<BlocksInfiniteScroll />} />
           <Route path="/entries" element={<Entries />} />
           <Route path="/integrity" element={<ChainIntegrityChecker />} />
           <Route path="/nodes" element={<Nodes />} />
@@ -1293,18 +1505,143 @@ export default BlockchainIntegrity;
 # src/Components/Blocks.jsx
 
 ```javascript
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import { fetchBlocks, resetError } from "../store/blocksSlice"; // Adjust the import path as needed
 
 const Blocks = () => {
+  const dispatch = useDispatch();
+  const {
+    blocks,
+    isLoading,
+    sort,
+    lastFetchedIndex,
+    nextIndexReference,
+    error,
+  } = useSelector((state) => state.blocks);
+  const [isFetching, setIsFetching] = useState(false);
+
+  useEffect(() => {
+    if (!blocks.length && !isLoading) {
+      dispatch(fetchBlocks({ sort: "asc" }));
+    }
+  }, [dispatch, blocks.length]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const nearBottom =
+        window.innerHeight + window.scrollY >=
+        document.documentElement.offsetHeight - 100;
+      const nearTop = window.scrollY <= 100;
+      if (
+        (nearBottom && sort === "asc") ||
+        (nearTop && nextIndexReference && sort === "asc")
+      ) {
+        if (!isFetching) {
+          setIsFetching(true);
+          fetchMoreBlocks();
+        }
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [isFetching, sort]);
+
+  const fetchMoreBlocks = () => {
+    dispatch(
+      fetchBlocks({
+        startWithIndex: lastFetchedIndex + 1,
+        sort,
+        limit: 10,
+      })
+    ).finally(() => setIsFetching(false));
+  };
+
+  const switchSortOrder = () => {
+    const newSortOrder = sort === "asc" ? "desc" : "asc";
+    dispatch(fetchBlocks({ sort: newSortOrder }));
+  };
+
   return (
     <div>
-      <h1>Welcome to Blocks Page</h1>
-      <p>This is the Blocks page of our application.</p>
+      <button onClick={switchSortOrder}>
+        Switch Sort Order (Current: {sort.toUpperCase()})
+      </button>
+      {error && <p>Error fetching blocks: {error} </p>}
+      <ul>
+        {blocks.map((block, index) => (
+          <li key={index}>
+            Block {block.index}: {block.hash}
+          </li>
+        ))}
+      </ul>
+      {isLoading && <p>Loading...</p>}
     </div>
   );
 };
 
 export default Blocks;
+
+```
+
+# src/Components/BlocksInfiniteScroll.jsx
+
+```javascript
+import React, { useEffect, useState } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import { fetchBlocks } from "../store/blocksSlice"; // Adjust the import path as needed
+
+const BlocksInfiniteScroll = () => {
+  const dispatch = useDispatch();
+  const { blocks, isLoading, nextIndexReference, error } = useSelector(
+    (state) => state.blocks
+  );
+  const [fetching, setFetching] = useState(false);
+
+  // Initial fetch
+  useEffect(() => {
+    if (!blocks.length && !isLoading) dispatch(fetchBlocks({}));
+  }, [blocks.length, isLoading, dispatch]);
+
+  // Scroll event handler
+  useEffect(() => {
+    const handleScroll = () => {
+      if (
+        window.innerHeight + document.documentElement.scrollTop !==
+          document.documentElement.offsetHeight ||
+        fetching
+      )
+        return;
+      setFetching(true);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [fetching]);
+
+  // Fetch more blocks on scroll
+  useEffect(() => {
+    if (fetching && nextIndexReference) {
+      dispatch(fetchBlocks({ startWithIndex: nextIndexReference }));
+      setFetching(false);
+    }
+  }, [fetching, nextIndexReference, dispatch]);
+
+  return (
+    <div>
+      {blocks.map((block, index) => (
+        <div key={index}>
+          Block {block.index}: {block.hash}
+        </div>
+      ))}
+      {isLoading && <p>Loading more blocks...</p>}
+      {error && <p>Error fetching blocks: {error}</p>}
+    </div>
+  );
+};
+
+export default BlocksInfiniteScroll;
 
 ```
 
@@ -1714,6 +2051,89 @@ export default blockchainIntegritySlice.reducer;
 
 ```
 
+# src/store/blocksSlice.js
+
+```javascript
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+
+const initialState = {
+  blocks: [],
+  blockIds: {},
+  isLoading: false,
+  sort: "desc",
+  lastFetchedIndex: null,
+  nextIndexReference: null,
+  error: null,
+};
+
+export const fetchBlocks = createAsyncThunk(
+  "blocks/fetchBlocks",
+  async (
+    { startWithIndex = 0, limit = 10, sort = "asc" },
+    { rejectWithValue }
+  ) => {
+    console.log(startWithIndex, limit, sort);
+    try {
+      const response = await fetch(
+        `/api/blocks?limit=${limit}&sort=${sort}&startWithIndex=${startWithIndex}`
+      );
+
+      if (!response.ok) throw new Error("Network response was not ok");
+      const data = await response.json();
+      console.log(data);
+      return data;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+export const blocksSlice = createSlice({
+  name: "blocks",
+  initialState,
+  reducers: {
+    resetError: (state) => {
+      state.error = null;
+    },
+  },
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchBlocks.pending, (state, action) => {
+        if (!state.blocks.length) {
+          state.isLoading = true;
+        }
+      })
+      .addCase(fetchBlocks.fulfilled, (state, action) => {
+        const { blocks, meta } = action.payload;
+
+        const newBlocks = blocks.filter(
+          (block) => !state.blockIds[block.index]
+        );
+        newBlocks.forEach((block) => (state.blockIds[block.index] = true));
+
+        state.isLoading = false;
+        state.blocks =
+          state.sort === "asc"
+            ? [...state.blocks, ...newBlocks]
+            : [...newBlocks, ...state.blocks];
+
+        state.lastFetchedIndex = meta.lastIndexInResponse;
+        state.nextIndexReference = meta.nextIndexReference;
+        state.sort = meta.sort;
+        state.error = null;
+      })
+      .addCase(fetchBlocks.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload;
+      });
+  },
+});
+
+export const { resetError } = blocksSlice.actions;
+export default blocksSlice.reducer;
+
+```
+
 # src/store/index.js
 
 ```javascript
@@ -1725,11 +2145,13 @@ export default blockchainIntegritySlice.reducer;
 import { configureStore } from "@reduxjs/toolkit";
 import blockchainInfoReducer from "./blockchainInfoSlice";
 import blockchainIntegrityReducer from "./blockchainIntegritySlice";
+import blocksReducer from "./blocksSlice";
 
 const store = configureStore({
   reducer: {
     blockchainInfo: blockchainInfoReducer,
     blockchainIntegrity: blockchainIntegrityReducer,
+    blocks: blocksReducer,
   },
 });
 

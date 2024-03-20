@@ -4,8 +4,6 @@ const initialState = {
   blocks: [],
   blockIds: {},
   isLoading: false,
-  hasNext: true,
-  hasPrev: true,
   sort: "desc",
   lastFetchedIndex: null,
   nextIndexReference: null,
@@ -15,7 +13,7 @@ const initialState = {
 export const fetchBlocks = createAsyncThunk(
   "blocks/fetchBlocks",
   async (
-    { startWithIndex = 0, limit = 10, sort = "asc" },
+    { startWithIndex = 0, limit = 50, sort = "asc" },
     { rejectWithValue }
   ) => {
     console.log(startWithIndex, limit, sort);
@@ -65,10 +63,6 @@ export const blocksSlice = createSlice({
 
         state.lastFetchedIndex = meta.lastIndexInResponse;
         state.nextIndexReference = meta.nextIndexReference;
-        state.hasNext =
-          meta.sort === "asc" ? meta.nextIndexReference != null : true;
-        state.hasPrev =
-          meta.sort === "desc" ? meta.nextIndexReference != null : true;
         state.sort = meta.sort;
         state.error = null;
       })

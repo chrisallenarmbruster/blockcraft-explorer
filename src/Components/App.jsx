@@ -9,6 +9,7 @@ import ChainIntegrityChecker from "./ChainIntegrityChecker";
 import NavBar from "./NavBar";
 import Home from "./Home";
 import Blocks from "./Blocks";
+import BlocksInfiniteScroll from "./BlocksInfiniteScroll";
 import Entries from "./Entries";
 import Nodes from "./Nodes";
 import { Container } from "react-bootstrap";
@@ -20,7 +21,7 @@ function App() {
       <Container className="mt-3">
         <Routes>
           <Route exact path="/" element={<Home />} />
-          <Route path="/blocks" element={<Blocks />} />
+          <Route path="/blocks" element={<BlocksInfiniteScroll />} />
           <Route path="/entries" element={<Entries />} />
           <Route path="/integrity" element={<ChainIntegrityChecker />} />
           <Route path="/nodes" element={<Nodes />} />

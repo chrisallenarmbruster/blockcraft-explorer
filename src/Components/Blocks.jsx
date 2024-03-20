@@ -7,8 +7,6 @@ const Blocks = () => {
   const {
     blocks,
     isLoading,
-    hasNext,
-    hasPrev,
     sort,
     lastFetchedIndex,
     nextIndexReference,
@@ -29,8 +27,8 @@ const Blocks = () => {
         document.documentElement.offsetHeight - 100;
       const nearTop = window.scrollY <= 100;
       if (
-        (nearBottom && hasNext && sort === "desc") ||
-        (nearTop && hasPrev && sort === "asc")
+        (nearBottom && sort === "asc") ||
+        (nearTop && nextIndexReference && sort === "asc")
       ) {
         if (!isFetching) {
           setIsFetching(true);
@@ -41,12 +39,12 @@ const Blocks = () => {
 
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [hasNext, hasPrev, isFetching, sort]);
+  }, [isFetching, sort]);
 
   const fetchMoreBlocks = () => {
     dispatch(
       fetchBlocks({
-        startWithIndex: nextIndexReference,
+        startWithIndex: lastFetchedIndex + 1,
         sort,
         limit: 10,
       })
