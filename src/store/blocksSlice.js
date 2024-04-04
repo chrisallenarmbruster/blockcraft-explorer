@@ -1,4 +1,5 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import axios from "axios";
 
 const initialState = {
   blocks: [],
@@ -16,18 +17,23 @@ export const fetchBlocks = createAsyncThunk(
     { startWithIndex = 0, limit = 50, sort = "asc" },
     { rejectWithValue }
   ) => {
-    console.log(startWithIndex, limit, sort);
     try {
-      const response = await fetch(
+      const response = await axios.get(
         `/api/blocks?limit=${limit}&sort=${sort}&startWithIndex=${startWithIndex}`
       );
-
-      if (!response.ok) throw new Error("Network response was not ok");
-      const data = await response.json();
-      console.log(data);
-      return data;
+      return response.data;
     } catch (error) {
-      return rejectWithValue(error.message);
+      if (error.response) {
+        return rejectWithValue(
+          `Server responded with status: ${error.response.status}`
+        );
+      } else if (error.request) {
+        return rejectWithValue(
+          "The server did not respond. Please try again later."
+        );
+      } else {
+        return rejectWithValue(`Error: ${error.message}`);
+      }
     }
   }
 );

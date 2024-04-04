@@ -4,19 +4,26 @@
 */
 
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+import axios from "axios";
 
 export const fetchBlockchainIntegrity = createAsyncThunk(
   "blockchainIntegrity/fetch",
   async (_, { rejectWithValue }) => {
     try {
-      const response = await fetch("/api/chain/integrity");
-      if (!response.ok) {
-        throw new Error(`server responded with status: ${response.status}`);
-      }
-      const data = await response.json();
-      return data;
+      const response = await axios.get("/api/chain/integrity");
+      return response.data;
     } catch (error) {
-      return rejectWithValue(error.message);
+      if (error.response) {
+        return rejectWithValue(
+          `Server responded with status: ${error.response.status}`
+        );
+      } else if (error.request) {
+        return rejectWithValue(
+          "The server did not respond. Please try again later."
+        );
+      } else {
+        return rejectWithValue(`Error: ${error.message}`);
+      }
     }
   }
 );

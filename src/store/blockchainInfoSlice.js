@@ -5,21 +5,27 @@
 
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { fetchBlockchainIntegrity } from "./blockchainIntegritySlice";
+import axios from "axios";
 
 export const fetchBlockchainInfo = createAsyncThunk(
   "blockchainInfo/fetch",
   async (_, { dispatch, rejectWithValue }) => {
     try {
-      const response = await fetch("/api/chain/info");
-      if (!response.ok) {
-        dispatch(fetchBlockchainIntegrity());
-        throw new Error(`server responded with status: ${response.status}`);
-      }
-      const data = await response.json();
+      const response = await axios.get("/api/chain/info");
       dispatch(fetchBlockchainIntegrity());
-      return data;
+      return response.data;
     } catch (error) {
-      return rejectWithValue(error.message);
+      if (error.response) {
+        return rejectWithValue(
+          `Server responded with status: ${error.response.status}`
+        );
+      } else if (error.request) {
+        return rejectWithValue(
+          "The server did not respond. Please try again later."
+        );
+      } else {
+        return rejectWithValue(error.message);
+      }
     }
   }
 );
