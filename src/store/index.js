@@ -7,12 +7,14 @@ import { configureStore } from "@reduxjs/toolkit";
 import blockchainInfoReducer from "./blockchainInfoSlice";
 import blockchainIntegrityReducer from "./blockchainIntegritySlice";
 import blocksReducer from "./blocksSlice";
+import latestBlocksReducer from "./blocksLatestSlice";
 
 const store = configureStore({
   reducer: {
     blockchainInfo: blockchainInfoReducer,
     blockchainIntegrity: blockchainIntegrityReducer,
     blocks: blocksReducer,
+    latestBlocks: latestBlocksReducer,
   },
 });
 

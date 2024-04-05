@@ -197,6 +197,7 @@ processFiles();
   "dependencies": {
     "@reduxjs/toolkit": "^2.2.1",
     "@vitejs/plugin-react": "^4.2.1",
+    "axios": "^1.6.8",
     "bootstrap": "^5.3.3",
     "bootstrap-icons": "^1.11.3",
     "glob": "^10.3.10",
@@ -603,39 +604,36 @@ export default Blocks;
 # src/Components/BlocksInfiniteScroll.jsx
 
 ```javascript
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { fetchBlocks } from "../store/blocksSlice"; // Adjust the import path as needed
+import { fetchBlocks } from "../store/blocksSlice";
 
-const BlocksInfiniteScroll = () => {
+const InfiniteScrollBlocks = () => {
   const dispatch = useDispatch();
   const { blocks, isLoading, nextIndexReference, error } = useSelector(
     (state) => state.blocks
   );
   const [fetching, setFetching] = useState(false);
+  const scrollRef = useRef(null);
 
-  // Initial fetch
   useEffect(() => {
     if (!blocks.length && !isLoading) dispatch(fetchBlocks({}));
   }, [blocks.length, isLoading, dispatch]);
 
-  // Scroll event handler
   useEffect(() => {
+    const scrollContainer = scrollRef.current;
     const handleScroll = () => {
-      if (
-        window.innerHeight + document.documentElement.scrollTop !==
-          document.documentElement.offsetHeight ||
-        fetching
-      )
-        return;
-      setFetching(true);
+      if (!scrollContainer) return;
+      const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
+      if (scrollHeight - scrollTop <= clientHeight * 1.5 && !fetching) {
+        setFetching(true);
+      }
     };
 
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
+    scrollContainer.addEventListener("scroll", handleScroll);
+    return () => scrollContainer.removeEventListener("scroll", handleScroll);
   }, [fetching]);
 
-  // Fetch more blocks on scroll
   useEffect(() => {
     if (fetching && nextIndexReference) {
       dispatch(fetchBlocks({ startWithIndex: nextIndexReference }));
@@ -644,7 +642,7 @@ const BlocksInfiniteScroll = () => {
   }, [fetching, nextIndexReference, dispatch]);
 
   return (
-    <div>
+    <div ref={scrollRef} style={{ height: "80vh", overflowY: "auto" }}>
       {blocks.map((block, index) => (
         <div key={index}>
           Block {block.index}: {block.hash}
@@ -656,7 +654,7 @@ const BlocksInfiniteScroll = () => {
   );
 };
 
-export default BlocksInfiniteScroll;
+export default InfiniteScrollBlocks;
 
 ```
 
@@ -664,45 +662,13 @@ export default BlocksInfiniteScroll;
 
 ```javascript
 import React, { useState, useEffect } from "react";
+import BlockchainIntegrity from "./BlockchainIntegrity";
 
 function ChainIntegrityChecker() {
-  const [chainIntegrity, setChainIntegrity] = useState({
-    isLoading: true,
-    data: null,
-    error: null,
-  });
-
-  useEffect(() => {
-    async function fetchChainIntegrity() {
-      try {
-        const response = await fetch("/api/chain/integrity");
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
-        setChainIntegrity({ isLoading: false, data, error: null });
-      } catch (error) {
-        setChainIntegrity({
-          isLoading: false,
-          data: null,
-          error: error.message,
-        });
-      }
-    }
-
-    fetchChainIntegrity();
-  }, []);
-
   return (
     <div>
-      <h1>Welcome to the Chain Integrity Check Page</h1>
-      {chainIntegrity.isLoading ? (
-        <p>Loading...</p>
-      ) : chainIntegrity.error ? (
-        <p>Error: {chainIntegrity.error}</p>
-      ) : (
-        <pre>{JSON.stringify(chainIntegrity.data, null, 2)}</pre>
-      )}
+      <h2 className="h3">Chain Integrity Checker</h2>
+      <BlockchainIntegrity />
     </div>
   );
 }
@@ -917,21 +883,27 @@ root.render(
 
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { fetchBlockchainIntegrity } from "./blockchainIntegritySlice";
+import axios from "axios";
 
 export const fetchBlockchainInfo = createAsyncThunk(
   "blockchainInfo/fetch",
   async (_, { dispatch, rejectWithValue }) => {
     try {
-      const response = await fetch("/api/chain/info");
-      if (!response.ok) {
-        dispatch(fetchBlockchainIntegrity());
-        throw new Error(`server responded with status: ${response.status}`);
-      }
-      const data = await response.json();
+      const response = await axios.get("/api/chain/info");
       dispatch(fetchBlockchainIntegrity());
-      return data;
+      return response.data;
     } catch (error) {
-      return rejectWithValue(error.message);
+      if (error.response) {
+        return rejectWithValue(
+          `Server responded with status: ${error.response.status}`
+        );
+      } else if (error.request) {
+        return rejectWithValue(
+          "The server did not respond. Please try again later."
+        );
+      } else {
+        return rejectWithValue(error.message);
+      }
     }
   }
 );
@@ -1000,19 +972,26 @@ export default blockchainInfoSlice.reducer;
 */
 
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+import axios from "axios";
 
 export const fetchBlockchainIntegrity = createAsyncThunk(
   "blockchainIntegrity/fetch",
   async (_, { rejectWithValue }) => {
     try {
-      const response = await fetch("/api/chain/integrity");
-      if (!response.ok) {
-        throw new Error(`server responded with status: ${response.status}`);
-      }
-      const data = await response.json();
-      return data;
+      const response = await axios.get("/api/chain/integrity");
+      return response.data;
     } catch (error) {
-      return rejectWithValue(error.message);
+      if (error.response) {
+        return rejectWithValue(
+          `Server responded with status: ${error.response.status}`
+        );
+      } else if (error.request) {
+        return rejectWithValue(
+          "The server did not respond. Please try again later."
+        );
+      } else {
+        return rejectWithValue(`Error: ${error.message}`);
+      }
     }
   }
 );
@@ -1070,6 +1049,7 @@ export default blockchainIntegritySlice.reducer;
 
 ```javascript
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import axios from "axios";
 
 const initialState = {
   blocks: [],
@@ -1084,21 +1064,26 @@ const initialState = {
 export const fetchBlocks = createAsyncThunk(
   "blocks/fetchBlocks",
   async (
-    { startWithIndex = 0, limit = 10, sort = "asc" },
+    { startWithIndex = 0, limit = 50, sort = "asc" },
     { rejectWithValue }
   ) => {
-    console.log(startWithIndex, limit, sort);
     try {
-      const response = await fetch(
+      const response = await axios.get(
         `/api/blocks?limit=${limit}&sort=${sort}&startWithIndex=${startWithIndex}`
       );
-
-      if (!response.ok) throw new Error("Network response was not ok");
-      const data = await response.json();
-      console.log(data);
-      return data;
+      return response.data;
     } catch (error) {
-      return rejectWithValue(error.message);
+      if (error.response) {
+        return rejectWithValue(
+          `Server responded with status: ${error.response.status}`
+        );
+      } else if (error.request) {
+        return rejectWithValue(
+          "The server did not respond. Please try again later."
+        );
+      } else {
+        return rejectWithValue(`Error: ${error.message}`);
+      }
     }
   }
 );
@@ -1588,39 +1573,36 @@ export default Blocks;
 # src/Components/BlocksInfiniteScroll.jsx
 
 ```javascript
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { fetchBlocks } from "../store/blocksSlice"; // Adjust the import path as needed
+import { fetchBlocks } from "../store/blocksSlice";
 
-const BlocksInfiniteScroll = () => {
+const InfiniteScrollBlocks = () => {
   const dispatch = useDispatch();
   const { blocks, isLoading, nextIndexReference, error } = useSelector(
     (state) => state.blocks
   );
   const [fetching, setFetching] = useState(false);
+  const scrollRef = useRef(null);
 
-  // Initial fetch
   useEffect(() => {
     if (!blocks.length && !isLoading) dispatch(fetchBlocks({}));
   }, [blocks.length, isLoading, dispatch]);
 
-  // Scroll event handler
   useEffect(() => {
+    const scrollContainer = scrollRef.current;
     const handleScroll = () => {
-      if (
-        window.innerHeight + document.documentElement.scrollTop !==
-          document.documentElement.offsetHeight ||
-        fetching
-      )
-        return;
-      setFetching(true);
+      if (!scrollContainer) return;
+      const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
+      if (scrollHeight - scrollTop <= clientHeight * 1.5 && !fetching) {
+        setFetching(true);
+      }
     };
 
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
+    scrollContainer.addEventListener("scroll", handleScroll);
+    return () => scrollContainer.removeEventListener("scroll", handleScroll);
   }, [fetching]);
 
-  // Fetch more blocks on scroll
   useEffect(() => {
     if (fetching && nextIndexReference) {
       dispatch(fetchBlocks({ startWithIndex: nextIndexReference }));
@@ -1629,7 +1611,7 @@ const BlocksInfiniteScroll = () => {
   }, [fetching, nextIndexReference, dispatch]);
 
   return (
-    <div>
+    <div ref={scrollRef} style={{ height: "80vh", overflowY: "auto" }}>
       {blocks.map((block, index) => (
         <div key={index}>
           Block {block.index}: {block.hash}
@@ -1641,7 +1623,7 @@ const BlocksInfiniteScroll = () => {
   );
 };
 
-export default BlocksInfiniteScroll;
+export default InfiniteScrollBlocks;
 
 ```
 
@@ -1649,45 +1631,13 @@ export default BlocksInfiniteScroll;
 
 ```javascript
 import React, { useState, useEffect } from "react";
+import BlockchainIntegrity from "./BlockchainIntegrity";
 
 function ChainIntegrityChecker() {
-  const [chainIntegrity, setChainIntegrity] = useState({
-    isLoading: true,
-    data: null,
-    error: null,
-  });
-
-  useEffect(() => {
-    async function fetchChainIntegrity() {
-      try {
-        const response = await fetch("/api/chain/integrity");
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
-        setChainIntegrity({ isLoading: false, data, error: null });
-      } catch (error) {
-        setChainIntegrity({
-          isLoading: false,
-          data: null,
-          error: error.message,
-        });
-      }
-    }
-
-    fetchChainIntegrity();
-  }, []);
-
   return (
     <div>
-      <h1>Welcome to the Chain Integrity Check Page</h1>
-      {chainIntegrity.isLoading ? (
-        <p>Loading...</p>
-      ) : chainIntegrity.error ? (
-        <p>Error: {chainIntegrity.error}</p>
-      ) : (
-        <pre>{JSON.stringify(chainIntegrity.data, null, 2)}</pre>
-      )}
+      <h2 className="h3">Chain Integrity Checker</h2>
+      <BlockchainIntegrity />
     </div>
   );
 }
@@ -1902,21 +1852,27 @@ root.render(
 
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { fetchBlockchainIntegrity } from "./blockchainIntegritySlice";
+import axios from "axios";
 
 export const fetchBlockchainInfo = createAsyncThunk(
   "blockchainInfo/fetch",
   async (_, { dispatch, rejectWithValue }) => {
     try {
-      const response = await fetch("/api/chain/info");
-      if (!response.ok) {
-        dispatch(fetchBlockchainIntegrity());
-        throw new Error(`server responded with status: ${response.status}`);
-      }
-      const data = await response.json();
+      const response = await axios.get("/api/chain/info");
       dispatch(fetchBlockchainIntegrity());
-      return data;
+      return response.data;
     } catch (error) {
-      return rejectWithValue(error.message);
+      if (error.response) {
+        return rejectWithValue(
+          `Server responded with status: ${error.response.status}`
+        );
+      } else if (error.request) {
+        return rejectWithValue(
+          "The server did not respond. Please try again later."
+        );
+      } else {
+        return rejectWithValue(error.message);
+      }
     }
   }
 );
@@ -1985,19 +1941,26 @@ export default blockchainInfoSlice.reducer;
 */
 
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+import axios from "axios";
 
 export const fetchBlockchainIntegrity = createAsyncThunk(
   "blockchainIntegrity/fetch",
   async (_, { rejectWithValue }) => {
     try {
-      const response = await fetch("/api/chain/integrity");
-      if (!response.ok) {
-        throw new Error(`server responded with status: ${response.status}`);
-      }
-      const data = await response.json();
-      return data;
+      const response = await axios.get("/api/chain/integrity");
+      return response.data;
     } catch (error) {
-      return rejectWithValue(error.message);
+      if (error.response) {
+        return rejectWithValue(
+          `Server responded with status: ${error.response.status}`
+        );
+      } else if (error.request) {
+        return rejectWithValue(
+          "The server did not respond. Please try again later."
+        );
+      } else {
+        return rejectWithValue(`Error: ${error.message}`);
+      }
     }
   }
 );
@@ -2055,6 +2018,7 @@ export default blockchainIntegritySlice.reducer;
 
 ```javascript
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import axios from "axios";
 
 const initialState = {
   blocks: [],
@@ -2069,21 +2033,26 @@ const initialState = {
 export const fetchBlocks = createAsyncThunk(
   "blocks/fetchBlocks",
   async (
-    { startWithIndex = 0, limit = 10, sort = "asc" },
+    { startWithIndex = 0, limit = 50, sort = "asc" },
     { rejectWithValue }
   ) => {
-    console.log(startWithIndex, limit, sort);
     try {
-      const response = await fetch(
+      const response = await axios.get(
         `/api/blocks?limit=${limit}&sort=${sort}&startWithIndex=${startWithIndex}`
       );
-
-      if (!response.ok) throw new Error("Network response was not ok");
-      const data = await response.json();
-      console.log(data);
-      return data;
+      return response.data;
     } catch (error) {
-      return rejectWithValue(error.message);
+      if (error.response) {
+        return rejectWithValue(
+          `Server responded with status: ${error.response.status}`
+        );
+      } else if (error.request) {
+        return rejectWithValue(
+          "The server did not respond. Please try again later."
+        );
+      } else {
+        return rejectWithValue(`Error: ${error.message}`);
+      }
     }
   }
 );

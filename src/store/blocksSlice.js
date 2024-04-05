@@ -32,7 +32,7 @@ export const fetchBlocks = createAsyncThunk(
           "The server did not respond. Please try again later."
         );
       } else {
-        return rejectWithValue(`Error: ${error.message}`);
+        return rejectWithValue(error.message);
       }
     }
   }
