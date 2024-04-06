@@ -12,6 +12,7 @@ export const fetchLatestBlocks = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const response = await axios.get("/api/blocks/latest");
+      console.log(response.data);
       return response.data;
     } catch (error) {
       if (error.response) {
@@ -36,6 +37,9 @@ const latestBlocksSlice = createSlice({
     resetError: (state) => {
       state.error = null;
     },
+    resetLatestBlocks: (state) => {
+      state.latestBlocks = [];
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -54,5 +58,5 @@ const latestBlocksSlice = createSlice({
   },
 });
 
-export const { resetError } = latestBlocksSlice.actions;
+export const { resetError, resetLatestBlocks } = latestBlocksSlice.actions;
 export default latestBlocksSlice.reducer;

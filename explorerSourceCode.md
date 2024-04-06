@@ -990,7 +990,7 @@ export const fetchBlockchainIntegrity = createAsyncThunk(
           "The server did not respond. Please try again later."
         );
       } else {
-        return rejectWithValue(`Error: ${error.message}`);
+        return rejectWithValue(error.message);
       }
     }
   }
@@ -1045,6 +1045,70 @@ export default blockchainIntegritySlice.reducer;
 
 ```
 
+# src/store/blocksLatestSlice.js
+
+```javascript
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import axios from "axios";
+
+const initialState = {
+  latestBlocks: [],
+  isLoading: false,
+  error: null,
+};
+
+export const fetchLatestBlocks = createAsyncThunk(
+  "latestBlocks/fetchLatestBlocks",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await axios.get("/api/blocks/latest");
+      return response.data;
+    } catch (error) {
+      if (error.response) {
+        return rejectWithValue(
+          `Server responded with status: ${error.response.status}`
+        );
+      } else if (error.request) {
+        return rejectWithValue(
+          "The server did not respond. Please try again later."
+        );
+      } else {
+        return rejectWithValue(error.message);
+      }
+    }
+  }
+);
+
+const latestBlocksSlice = createSlice({
+  name: "latestBlocks",
+  initialState,
+  reducers: {
+    resetError: (state) => {
+      state.error = null;
+    },
+  },
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchLatestBlocks.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(fetchLatestBlocks.fulfilled, (state, action) => {
+        state.latestBlocks = action.payload;
+        state.isLoading = false;
+      })
+      .addCase(fetchLatestBlocks.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload;
+      });
+  },
+});
+
+export const { resetError } = latestBlocksSlice.actions;
+export default latestBlocksSlice.reducer;
+
+```
+
 # src/store/blocksSlice.js
 
 ```javascript
@@ -1082,7 +1146,7 @@ export const fetchBlocks = createAsyncThunk(
           "The server did not respond. Please try again later."
         );
       } else {
-        return rejectWithValue(`Error: ${error.message}`);
+        return rejectWithValue(error.message);
       }
     }
   }
@@ -1146,12 +1210,14 @@ import { configureStore } from "@reduxjs/toolkit";
 import blockchainInfoReducer from "./blockchainInfoSlice";
 import blockchainIntegrityReducer from "./blockchainIntegritySlice";
 import blocksReducer from "./blocksSlice";
+import latestBlocksReducer from "./blocksLatestSlice";
 
 const store = configureStore({
   reducer: {
     blockchainInfo: blockchainInfoReducer,
     blockchainIntegrity: blockchainIntegrityReducer,
     blocks: blocksReducer,
+    latestBlocks: latestBlocksReducer,
   },
 });
 
@@ -1959,7 +2025,7 @@ export const fetchBlockchainIntegrity = createAsyncThunk(
           "The server did not respond. Please try again later."
         );
       } else {
-        return rejectWithValue(`Error: ${error.message}`);
+        return rejectWithValue(error.message);
       }
     }
   }
@@ -2014,6 +2080,70 @@ export default blockchainIntegritySlice.reducer;
 
 ```
 
+# src/store/blocksLatestSlice.js
+
+```javascript
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import axios from "axios";
+
+const initialState = {
+  latestBlocks: [],
+  isLoading: false,
+  error: null,
+};
+
+export const fetchLatestBlocks = createAsyncThunk(
+  "latestBlocks/fetchLatestBlocks",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await axios.get("/api/blocks/latest");
+      return response.data;
+    } catch (error) {
+      if (error.response) {
+        return rejectWithValue(
+          `Server responded with status: ${error.response.status}`
+        );
+      } else if (error.request) {
+        return rejectWithValue(
+          "The server did not respond. Please try again later."
+        );
+      } else {
+        return rejectWithValue(error.message);
+      }
+    }
+  }
+);
+
+const latestBlocksSlice = createSlice({
+  name: "latestBlocks",
+  initialState,
+  reducers: {
+    resetError: (state) => {
+      state.error = null;
+    },
+  },
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchLatestBlocks.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(fetchLatestBlocks.fulfilled, (state, action) => {
+        state.latestBlocks = action.payload;
+        state.isLoading = false;
+      })
+      .addCase(fetchLatestBlocks.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload;
+      });
+  },
+});
+
+export const { resetError } = latestBlocksSlice.actions;
+export default latestBlocksSlice.reducer;
+
+```
+
 # src/store/blocksSlice.js
 
 ```javascript
@@ -2051,7 +2181,7 @@ export const fetchBlocks = createAsyncThunk(
           "The server did not respond. Please try again later."
         );
       } else {
-        return rejectWithValue(`Error: ${error.message}`);
+        return rejectWithValue(error.message);
       }
     }
   }
@@ -2115,12 +2245,14 @@ import { configureStore } from "@reduxjs/toolkit";
 import blockchainInfoReducer from "./blockchainInfoSlice";
 import blockchainIntegrityReducer from "./blockchainIntegritySlice";
 import blocksReducer from "./blocksSlice";
+import latestBlocksReducer from "./blocksLatestSlice";
 
 const store = configureStore({
   reducer: {
     blockchainInfo: blockchainInfoReducer,
     blockchainIntegrity: blockchainIntegrityReducer,
     blocks: blocksReducer,
+    latestBlocks: latestBlocksReducer,
   },
 });
 
