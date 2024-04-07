@@ -41,8 +41,8 @@ const BlocksSwiper = () => {
       <style>
         {`
           .latest-blocks-swiper {
+            cursor: grab;
             -webkit-overflow-scrolling: touch;
-            overflow-x: auto;
             scrollbar-width: none; /* Firefox */
             -ms-overflow-style: none;  /* IE 10+ */
           }
@@ -50,29 +50,45 @@ const BlocksSwiper = () => {
           .latest-blocks-swiper::-webkit-scrollbar {
             display: none; /* WebKit */
           }
+
+          .miniCard {
+            min-width: 100px;
+            max-width: 100px;
+            height: 100px; 
+          }
+
+          .horizontal-line {
+            height: 2px;
+            width: 33px; 
+          }
+
+          .no-select {
+            user-select: none; /* Standard syntax */
+            -webkit-user-select: none; /* Safari */
+            -moz-user-select: none; /* Firefox */
+            -ms-user-select: none; /* Internet Explorer/Edge */
+          }
         `}
       </style>
       <div
         ref={containerRef}
         {...bind()}
-        className="latest-blocks-swiper d-flex flex-row flex-nowrap overflow-auto"
-        style={{ cursor: "grab" }}
+        className="latest-blocks-swiper overflow-x-auto d-flex flex-row flex-nowrap overflow-auto align-items-center"
       >
-        {latestBlocks.map((block) => (
-          <Card
-            className="mx-2 my-3"
-            key={block.index}
-            style={{
-              minWidth: "100px",
-              maxWidth: "100px",
-              minHeight: "100px",
-              maxHeight: "100px",
-            }}
-          >
-            <Card.Body className="d-flex align-items-center justify-content-center">
-              <div className="fs-6">#{block.index}</div>
-            </Card.Body>
-          </Card>
+        {latestBlocks.map((block, index) => (
+          <React.Fragment key={block.index}>
+            {index !== 0 && (
+              <div className="bg-info">
+                <hr className="horizontal-line my-0"></hr>
+              </div>
+            )}
+            {/* Horizontal line between cards */}
+            <Card className="bg-info bg-opacity-50 miniCard border-2 border-info">
+              <Card.Body className="d-flex align-items-center justify-content-center">
+                <div className="fs-6 no-select">#{block.index}</div>
+              </Card.Body>
+            </Card>
+          </React.Fragment>
         ))}
       </div>
     </>
