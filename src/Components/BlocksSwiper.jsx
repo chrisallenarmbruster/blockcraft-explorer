@@ -7,7 +7,7 @@ import {
 import { useDrag } from "@use-gesture/react";
 import { Card } from "react-bootstrap";
 
-const BlocksSwiper = () => {
+const BlocksSwiper = ({ mode = "latest", centerIndex = 0 }) => {
   const dispatch = useDispatch();
   const { latestBlocks } = useSelector((state) => state.latestBlocks);
   const containerRef = useRef(null);
@@ -20,6 +20,31 @@ const BlocksSwiper = () => {
       dispatch(resetLatestBlocks());
     };
   }, [dispatch]);
+
+  useEffect(() => {
+    if (containerRef.current && latestBlocks.length > 0) {
+      console.log("Center Index:", centerIndex);
+      let initialScrollPosition = 0;
+
+      if (mode === "centerOnBlock") {
+        // Your existing logic to calculate the initialScrollPosition
+        // for centering on centerIndex
+        const containerWidth = containerRef.current.offsetWidth;
+        const blockWidth = 100;
+        const lineWidth = 33;
+        const blockPlusLineWidth =
+          blockWidth +
+          (centerIndex === latestBlocks.length - 1 ? 0 : lineWidth);
+        initialScrollPosition =
+          blockPlusLineWidth * centerIndex -
+          containerWidth / 2 +
+          blockWidth / 2;
+      }
+      // For 'latest' mode, initialScrollPosition remains 0, which is the default
+
+      containerRef.current.scrollLeft = initialScrollPosition;
+    }
+  }, [latestBlocks, mode, centerIndex]);
 
   const bind = useDrag(
     ({ down, movement: [mx], first }) => {
@@ -83,7 +108,13 @@ const BlocksSwiper = () => {
               </div>
             )}
             {/* Horizontal line between cards */}
-            <Card className="bg-info bg-opacity-50 miniCard border-2 border-info">
+            <Card
+              className={`miniCard border-2 ${
+                mode === "centerOnBlock" && index === centerIndex
+                  ? "bg-info bg-opacity-75 border-secondary"
+                  : "bg-info bg-opacity-25 border-info"
+              } `}
+            >
               <Card.Body className="d-flex align-items-center justify-content-center">
                 <div className="fs-6 no-select">#{block.index}</div>
               </Card.Body>
