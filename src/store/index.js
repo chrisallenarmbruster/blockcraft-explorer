@@ -8,6 +8,7 @@ import blockchainInfoReducer from "./blockchainInfoSlice";
 import blockchainIntegrityReducer from "./blockchainIntegritySlice";
 import blocksReducer from "./blocksSlice";
 import latestBlocksReducer from "./blocksLatestSlice";
+import selectedBlockReducer from "./blockSelectedSlice";
 
 const store = configureStore({
   reducer: {
@@ -15,6 +16,7 @@ const store = configureStore({
     blockchainIntegrity: blockchainIntegrityReducer,
     blocks: blocksReducer,
     latestBlocks: latestBlocksReducer,
+    selectedBlock: selectedBlockReducer,
   },
 });
 

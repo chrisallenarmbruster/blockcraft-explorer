@@ -196,6 +196,7 @@ processFiles();
   "homepage": "https://github.com/chrisallenarmbruster/blockcraft-explorer#readme",
   "dependencies": {
     "@reduxjs/toolkit": "^2.2.1",
+    "@use-gesture/react": "^10.3.1",
     "@vitejs/plugin-react": "^4.2.1",
     "axios": "^1.6.8",
     "bootstrap": "^5.3.3",
@@ -658,6 +659,141 @@ export default InfiniteScrollBlocks;
 
 ```
 
+# src/Components/BlocksSwiper.jsx
+
+```javascript
+import React, { useEffect, useRef, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  fetchLatestBlocks,
+  resetLatestBlocks,
+} from "../store/blocksLatestSlice";
+import { useDrag } from "@use-gesture/react";
+import { Card } from "react-bootstrap";
+
+const BlocksSwiper = ({ mode = "latest", centerIndex = 0 }) => {
+  const dispatch = useDispatch();
+  const { latestBlocks } = useSelector((state) => state.latestBlocks);
+  const containerRef = useRef(null);
+  const [initialScroll, setInitialScroll] = useState(0);
+
+  useEffect(() => {
+    dispatch(fetchLatestBlocks());
+
+    return () => {
+      dispatch(resetLatestBlocks());
+    };
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (containerRef.current && latestBlocks.length > 0) {
+      console.log("Center Index:", centerIndex);
+      let initialScrollPosition = 0;
+
+      if (mode === "centerOnBlock") {
+        // Your existing logic to calculate the initialScrollPosition
+        // for centering on centerIndex
+        const containerWidth = containerRef.current.offsetWidth;
+        const blockWidth = 100;
+        const lineWidth = 33;
+        const blockPlusLineWidth =
+          blockWidth +
+          (centerIndex === latestBlocks.length - 1 ? 0 : lineWidth);
+        initialScrollPosition =
+          blockPlusLineWidth * centerIndex -
+          containerWidth / 2 +
+          blockWidth / 2;
+      }
+      // For 'latest' mode, initialScrollPosition remains 0, which is the default
+
+      containerRef.current.scrollLeft = initialScrollPosition;
+    }
+  }, [latestBlocks, mode, centerIndex]);
+
+  const bind = useDrag(
+    ({ down, movement: [mx], first }) => {
+      if (containerRef.current) {
+        if (first) {
+          setInitialScroll(containerRef.current.scrollLeft);
+        }
+        const newScrollPosition = initialScroll - mx;
+        containerRef.current.scrollLeft = newScrollPosition;
+      }
+    },
+    {
+      axis: "x",
+    }
+  );
+
+  return (
+    <>
+      <style>
+        {`
+          .latest-blocks-swiper {
+            cursor: grab;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none;  /* IE 10+ */
+          }
+
+          .latest-blocks-swiper::-webkit-scrollbar {
+            display: none; /* WebKit */
+          }
+
+          .miniCard {
+            min-width: 100px;
+            max-width: 100px;
+            height: 100px; 
+          }
+
+          .horizontal-line {
+            height: 2px;
+            width: 33px; 
+          }
+
+          .no-select {
+            user-select: none; /* Standard syntax */
+            -webkit-user-select: none; /* Safari */
+            -moz-user-select: none; /* Firefox */
+            -ms-user-select: none; /* Internet Explorer/Edge */
+          }
+        `}
+      </style>
+      <div
+        ref={containerRef}
+        {...bind()}
+        className="latest-blocks-swiper overflow-x-auto d-flex flex-row flex-nowrap overflow-auto align-items-center"
+      >
+        {latestBlocks.map((block, index) => (
+          <React.Fragment key={block.index}>
+            {index !== 0 && (
+              <div className="bg-info">
+                <hr className="horizontal-line my-0"></hr>
+              </div>
+            )}
+            {/* Horizontal line between cards */}
+            <Card
+              className={`miniCard border-2 ${
+                mode === "centerOnBlock" && index === centerIndex
+                  ? "bg-info bg-opacity-75 border-secondary"
+                  : "bg-info bg-opacity-25 border-info"
+              } `}
+            >
+              <Card.Body className="d-flex align-items-center justify-content-center">
+                <div className="fs-6 no-select">#{block.index}</div>
+              </Card.Body>
+            </Card>
+          </React.Fragment>
+        ))}
+      </div>
+    </>
+  );
+};
+
+export default BlocksSwiper;
+
+```
+
 # src/Components/ChainIntegrityChecker.jsx
 
 ```javascript
@@ -701,6 +837,7 @@ export default Entries;
 import React from "react";
 import BlockchainInfo from "./BlockchainInfo";
 import BlockchainIntegrity from "./BlockchainIntegrity";
+import BlocksSwiper from "./BlocksSwiper";
 
 const Home = () => {
   return (
@@ -709,6 +846,8 @@ const Home = () => {
       <BlockchainInfo />
       <h2 className="h3 mt-3">Blockchain Integrity</h2>
       <BlockchainIntegrity />
+      <h2 className="h3 mt-3 mb-4">Latest Blocks</h2>
+      <BlocksSwiper />
     </div>
   );
 };
@@ -1062,6 +1201,7 @@ export const fetchLatestBlocks = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const response = await axios.get("/api/blocks/latest");
+      console.log(response.data);
       return response.data;
     } catch (error) {
       if (error.response) {
@@ -1086,6 +1226,9 @@ const latestBlocksSlice = createSlice({
     resetError: (state) => {
       state.error = null;
     },
+    resetLatestBlocks: (state) => {
+      state.latestBlocks = [];
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -1104,7 +1247,7 @@ const latestBlocksSlice = createSlice({
   },
 });
 
-export const { resetError } = latestBlocksSlice.actions;
+export const { resetError, resetLatestBlocks } = latestBlocksSlice.actions;
 export default latestBlocksSlice.reducer;
 
 ```
@@ -1693,6 +1836,141 @@ export default InfiniteScrollBlocks;
 
 ```
 
+# src/Components/BlocksSwiper.jsx
+
+```javascript
+import React, { useEffect, useRef, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  fetchLatestBlocks,
+  resetLatestBlocks,
+} from "../store/blocksLatestSlice";
+import { useDrag } from "@use-gesture/react";
+import { Card } from "react-bootstrap";
+
+const BlocksSwiper = ({ mode = "latest", centerIndex = 0 }) => {
+  const dispatch = useDispatch();
+  const { latestBlocks } = useSelector((state) => state.latestBlocks);
+  const containerRef = useRef(null);
+  const [initialScroll, setInitialScroll] = useState(0);
+
+  useEffect(() => {
+    dispatch(fetchLatestBlocks());
+
+    return () => {
+      dispatch(resetLatestBlocks());
+    };
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (containerRef.current && latestBlocks.length > 0) {
+      console.log("Center Index:", centerIndex);
+      let initialScrollPosition = 0;
+
+      if (mode === "centerOnBlock") {
+        // Your existing logic to calculate the initialScrollPosition
+        // for centering on centerIndex
+        const containerWidth = containerRef.current.offsetWidth;
+        const blockWidth = 100;
+        const lineWidth = 33;
+        const blockPlusLineWidth =
+          blockWidth +
+          (centerIndex === latestBlocks.length - 1 ? 0 : lineWidth);
+        initialScrollPosition =
+          blockPlusLineWidth * centerIndex -
+          containerWidth / 2 +
+          blockWidth / 2;
+      }
+      // For 'latest' mode, initialScrollPosition remains 0, which is the default
+
+      containerRef.current.scrollLeft = initialScrollPosition;
+    }
+  }, [latestBlocks, mode, centerIndex]);
+
+  const bind = useDrag(
+    ({ down, movement: [mx], first }) => {
+      if (containerRef.current) {
+        if (first) {
+          setInitialScroll(containerRef.current.scrollLeft);
+        }
+        const newScrollPosition = initialScroll - mx;
+        containerRef.current.scrollLeft = newScrollPosition;
+      }
+    },
+    {
+      axis: "x",
+    }
+  );
+
+  return (
+    <>
+      <style>
+        {`
+          .latest-blocks-swiper {
+            cursor: grab;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none;  /* IE 10+ */
+          }
+
+          .latest-blocks-swiper::-webkit-scrollbar {
+            display: none; /* WebKit */
+          }
+
+          .miniCard {
+            min-width: 100px;
+            max-width: 100px;
+            height: 100px; 
+          }
+
+          .horizontal-line {
+            height: 2px;
+            width: 33px; 
+          }
+
+          .no-select {
+            user-select: none; /* Standard syntax */
+            -webkit-user-select: none; /* Safari */
+            -moz-user-select: none; /* Firefox */
+            -ms-user-select: none; /* Internet Explorer/Edge */
+          }
+        `}
+      </style>
+      <div
+        ref={containerRef}
+        {...bind()}
+        className="latest-blocks-swiper overflow-x-auto d-flex flex-row flex-nowrap overflow-auto align-items-center"
+      >
+        {latestBlocks.map((block, index) => (
+          <React.Fragment key={block.index}>
+            {index !== 0 && (
+              <div className="bg-info">
+                <hr className="horizontal-line my-0"></hr>
+              </div>
+            )}
+            {/* Horizontal line between cards */}
+            <Card
+              className={`miniCard border-2 ${
+                mode === "centerOnBlock" && index === centerIndex
+                  ? "bg-info bg-opacity-75 border-secondary"
+                  : "bg-info bg-opacity-25 border-info"
+              } `}
+            >
+              <Card.Body className="d-flex align-items-center justify-content-center">
+                <div className="fs-6 no-select">#{block.index}</div>
+              </Card.Body>
+            </Card>
+          </React.Fragment>
+        ))}
+      </div>
+    </>
+  );
+};
+
+export default BlocksSwiper;
+
+```
+
 # src/Components/ChainIntegrityChecker.jsx
 
 ```javascript
@@ -1736,6 +2014,7 @@ export default Entries;
 import React from "react";
 import BlockchainInfo from "./BlockchainInfo";
 import BlockchainIntegrity from "./BlockchainIntegrity";
+import BlocksSwiper from "./BlocksSwiper";
 
 const Home = () => {
   return (
@@ -1744,6 +2023,8 @@ const Home = () => {
       <BlockchainInfo />
       <h2 className="h3 mt-3">Blockchain Integrity</h2>
       <BlockchainIntegrity />
+      <h2 className="h3 mt-3 mb-4">Latest Blocks</h2>
+      <BlocksSwiper />
     </div>
   );
 };
@@ -2097,6 +2378,7 @@ export const fetchLatestBlocks = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const response = await axios.get("/api/blocks/latest");
+      console.log(response.data);
       return response.data;
     } catch (error) {
       if (error.response) {
@@ -2121,6 +2403,9 @@ const latestBlocksSlice = createSlice({
     resetError: (state) => {
       state.error = null;
     },
+    resetLatestBlocks: (state) => {
+      state.latestBlocks = [];
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -2139,7 +2424,7 @@ const latestBlocksSlice = createSlice({
   },
 });
 
-export const { resetError } = latestBlocksSlice.actions;
+export const { resetError, resetLatestBlocks } = latestBlocksSlice.actions;
 export default latestBlocksSlice.reducer;
 
 ```
