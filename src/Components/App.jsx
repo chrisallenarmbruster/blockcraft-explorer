@@ -26,7 +26,7 @@ function App() {
           <Route path="/entries" element={<Entries />} />
           <Route path="/integrity" element={<ChainIntegrityChecker />} />
           <Route path="/nodes" element={<Nodes />} />
-          <Route path="/blocks/:blockId" element={<BlockDetails />} />
+          <Route path="/blocks/:blockIndex" element={<BlockDetails />} />
           <Route path="*" element={<h1>Not Found</h1>} />
         </Routes>
       </Container>

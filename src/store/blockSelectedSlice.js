@@ -5,6 +5,7 @@ export const fetchBlockDetails = createAsyncThunk(
   "blockSelected/fetchDetails",
   async (blockIndex, { rejectWithValue }) => {
     try {
+      console.log(`Fetching block details for block index: ${blockIndex}`);
       const response = await axios.get(`/api/block/${blockIndex}`);
       return response.data;
     } catch (error) {
