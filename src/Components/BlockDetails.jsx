@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useParams } from "react-router-dom";
 import { fetchBlockDetails } from "../store/blockSelectedSlice"; // Adjust the path as necessary
 import { Container, ListGroup } from "react-bootstrap";
+import BlocksSwiper from "./BlocksSwiper";
 
 const BlockDetails = () => {
   const { blockIndex } = useParams();
@@ -26,7 +27,7 @@ const BlockDetails = () => {
 
   return (
     <div>
-      <h2 className="h3">Block Details for</h2>
+      <h2 className="h3">Block Details for #{block && block.index}</h2>
 
       {block && (
         <div>
@@ -56,22 +57,23 @@ const BlockDetails = () => {
           </Container>
           {block.data && (
             <>
-              <h2 className="h3 mt-5">Block Data Entries</h2>
-              <Container>
-                {Array.isArray(block.data) ? (
-                  <ListGroup>
-                    {block.data.map((item, index) => (
-                      <ListGroup.Item key={index}>
-                        {JSON.stringify(item)}
-                      </ListGroup.Item>
-                    ))}
-                  </ListGroup>
-                ) : (
-                  <p>{JSON.stringify(block.data)}</p>
-                )}
-              </Container>
+              <h2 className="h3 mt-5 mb-3">Block Data Entries</h2>
+
+              {Array.isArray(block.data) ? (
+                <ListGroup>
+                  {block.data.map((item, index) => (
+                    <ListGroup.Item key={index}>
+                      {JSON.stringify(item)}
+                    </ListGroup.Item>
+                  ))}
+                </ListGroup>
+              ) : (
+                <p>{JSON.stringify(block.data)}</p>
+              )}
             </>
           )}
+          <h2 className="h3 mt-5 mb-4">Adjacent Blocks</h2>
+          <BlocksSwiper radius={15} centerOnIndex={parseInt(blockIndex, 10)} />
         </div>
       )}
     </div>

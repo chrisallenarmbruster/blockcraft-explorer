@@ -11,7 +11,7 @@ const Home = () => {
       <h2 className="h3 mt-3">Blockchain Integrity</h2>
       <BlockchainIntegrity />
       <h2 className="h3 mt-3 mb-4">Latest Blocks</h2>
-      <BlocksSwiper />
+      <BlocksSwiper radius={15} />
     </div>
   );
 };
