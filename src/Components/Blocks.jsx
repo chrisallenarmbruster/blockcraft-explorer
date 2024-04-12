@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { fetchBlocks, resetError } from "../store/blocksSlice"; // Adjust the import path as needed
+import { Link } from "react-router-dom";
 
 const Blocks = () => {
   const dispatch = useDispatch();
@@ -65,7 +66,8 @@ const Blocks = () => {
       <ul>
         {blocks.map((block, index) => (
           <li key={index}>
-            Block {block.index}: {block.hash}
+            <Link to={`/blocks/${block.index}`}>Block {block.index}</Link>:{" "}
+            {block.hash}
           </li>
         ))}
       </ul>

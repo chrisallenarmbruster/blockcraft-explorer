@@ -1,31 +1,33 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { fetchBlocks } from "../store/blocksSlice";
+import { Link, useNavigate } from "react-router-dom";
+import { Row, Col } from "react-bootstrap";
 
 const InfiniteScrollBlocks = () => {
+  const navigate = useNavigate();
   const dispatch = useDispatch();
   const { blocks, isLoading, nextIndexReference, error } = useSelector(
     (state) => state.blocks
   );
   const [fetching, setFetching] = useState(false);
-  const scrollRef = useRef(null);
 
   useEffect(() => {
     if (!blocks.length && !isLoading) dispatch(fetchBlocks({}));
   }, [blocks.length, isLoading, dispatch]);
 
   useEffect(() => {
-    const scrollContainer = scrollRef.current;
     const handleScroll = () => {
-      if (!scrollContainer) return;
-      const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
+      const { scrollTop, scrollHeight, clientHeight } =
+        document.documentElement;
+      // You might need to adjust this condition to better fit your needs
       if (scrollHeight - scrollTop <= clientHeight * 1.5 && !fetching) {
         setFetching(true);
       }
     };
 
-    scrollContainer.addEventListener("scroll", handleScroll);
-    return () => scrollContainer.removeEventListener("scroll", handleScroll);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, [fetching]);
 
   useEffect(() => {
@@ -35,16 +37,70 @@ const InfiniteScrollBlocks = () => {
     }
   }, [fetching, nextIndexReference, dispatch]);
 
+  const handleRowClick = (blockIndex) => {
+    navigate(`/blocks/${blockIndex}`);
+  };
+
+  const formatDate = (timestamp) => {
+    const date = new Date(timestamp);
+    return date.toLocaleString();
+  };
+
   return (
-    <div ref={scrollRef} style={{ height: "80vh", overflowY: "auto" }}>
-      {blocks.map((block, index) => (
-        <div key={index}>
-          Block {block.index}: {block.hash}
-        </div>
-      ))}
-      {isLoading && <p>Loading more blocks...</p>}
-      {error && <p>Error fetching blocks: {error}</p>}
-    </div>
+    <>
+      <style>
+        {`
+          .block-row:hover {
+            cursor: pointer;
+            background-color: rgba(13, 202, 240, 0.25); 
+          }
+        `}
+      </style>
+      <div>
+        {blocks.length > 0 && !isLoading && !error && (
+          <>
+            <Row className="fw-bold mt-3 d-none d-md-flex">
+              <Col sm={12} md={2}>
+                Index
+              </Col>
+              <Col sm={12} md={2}>
+                Creator
+              </Col>
+              <Col sm={12} md={4} lg={3}>
+                Timestamp
+              </Col>
+              <Col sm={12} md={4} lg={3}>
+                Hash
+              </Col>
+            </Row>
+            <hr className="d-none d-md-flex"></hr>
+          </>
+        )}
+        {blocks.map((block, index) => (
+          <Row
+            key={index}
+            className="my-2 block-row"
+            onClick={() => handleRowClick(block.index)}
+          >
+            <Col sm={12} md={2} title="Block Index">
+              Block {block.index}
+            </Col>
+            <Col sm={12} md={2} title="Block Creator">
+              {block.blockCreator}
+            </Col>
+            <Col sm={12} md={4} lg={3} title="Timestamp">
+              {formatDate(block.timestamp).split(",")[0]} -{" "}
+              {formatDate(block.timestamp).split(",")[1]}
+            </Col>
+            <Col sm={12} md={4} lg={3} title={`Hash: ${block.hash}`}>
+              {block.hash.slice(0, 5)}...{block.hash.slice(-5)}
+            </Col>
+          </Row>
+        ))}
+        {isLoading && <p>Loading more blocks...</p>}
+        {error && <p>Error fetching blocks: {error}</p>}
+      </div>
+    </>
   );
 };
 

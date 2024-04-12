@@ -14,7 +14,7 @@ const initialState = {
 export const fetchBlocks = createAsyncThunk(
   "blocks/fetchBlocks",
   async (
-    { startWithIndex = 0, limit = 50, sort = "asc" },
+    { startWithIndex = 0, limit = 100, sort = "asc" },
     { rejectWithValue }
   ) => {
     try {
