@@ -1,3 +1,16 @@
+/*
+  File: BlocksSwiper.jsx
+  Description: 
+  This component renders a swiper of blocks. It fetches a range of blocks from 
+  the Redux store and displays them in a horizontal scrollable container. The 
+  user can drag to scroll through the blocks. Each block is a link to the 
+  block's detail page. 
+
+  The swiper centers on a specified block index when it first renders and 
+  whenever the specified index changes. The component also handles loading 
+  and error states.
+*/
+
 import React, { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchBlocksRange, resetBlocks } from "../store/blocksRangeSlice";

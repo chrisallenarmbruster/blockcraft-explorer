@@ -1,3 +1,23 @@
+/*
+  File: blocksRangeSlice.js
+  Description: 
+  This file defines the Redux slice for a range of blocks. It includes the slice's 
+  initial state, reducers, and asynchronous actions.
+
+  The initial state includes an array of blocks, a loading flag, and an error message.
+
+  The `fetchBlocksRange` async action fetches a range of blocks from the server. It 
+  takes an object with `radius` and `centerOnIndex` properties, which specify the 
+  range of blocks to fetch. The action handles loading and error states, and formats 
+  the server response before dispatching the fulfilled action.
+
+  The slice includes reducers for resetting the error message and the blocks array. 
+  It also includes extra reducers for handling the pending, fulfilled, and rejected 
+  actions dispatched by `fetchBlocksRange`.
+
+  The file exports the action creators and the reducer function for the slice.
+*/
+
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
 

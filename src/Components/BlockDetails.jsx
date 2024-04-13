@@ -1,3 +1,19 @@
+/*
+  File: BlockDetails.jsx
+  Description: 
+  This component is responsible for displaying the details of a specific block. 
+  It fetches the block details from the Redux store using the block index obtained 
+  from the URL parameters. 
+
+  The component handles loading and error states, and formats the block's timestamp 
+  into a human-readable format. It also filters out certain properties from the block 
+  object to display them separately, and handles the case where the block's data is 
+  an array.
+
+  At the bottom of the page, it renders a BlocksSwiper component to display the 
+  adjacent blocks in a swiper. The BlocksSwiper is centered on the current block.
+*/
+
 import React, { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useParams } from "react-router-dom";
