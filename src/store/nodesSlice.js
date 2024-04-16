@@ -2,16 +2,16 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
 
 const initialState = {
-  latestBlocks: [],
+  nodes: [],
   isLoading: false,
   error: null,
 };
 
-export const fetchLatestBlocks = createAsyncThunk(
-  "latestBlocks/fetchLatestBlocks",
+export const fetchNodes = createAsyncThunk(
+  "nodes/fetchNodes",
   async (_, { rejectWithValue }) => {
     try {
-      const response = await axios.get("/api/blocks/latest");
+      const response = await axios.get("/api/nodes");
       return response.data;
     } catch (error) {
       if (error.response) {
@@ -29,33 +29,34 @@ export const fetchLatestBlocks = createAsyncThunk(
   }
 );
 
-const latestBlocksSlice = createSlice({
-  name: "latestBlocks",
+const nodesSlice = createSlice({
+  name: "nodes",
   initialState,
   reducers: {
     resetError: (state) => {
       state.error = null;
     },
-    resetLatestBlocks: (state) => {
-      state.latestBlocks = [];
+    resetNodes: (state) => {
+      state.nodes = [];
     },
   },
   extraReducers: (builder) => {
     builder
-      .addCase(fetchLatestBlocks.pending, (state) => {
+      .addCase(fetchNodes.pending, (state) => {
         state.isLoading = true;
         state.error = null;
       })
-      .addCase(fetchLatestBlocks.fulfilled, (state, action) => {
-        state.latestBlocks = action.payload;
+      .addCase(fetchNodes.fulfilled, (state, action) => {
+        state.nodes = action.payload;
         state.isLoading = false;
       })
-      .addCase(fetchLatestBlocks.rejected, (state, action) => {
+      .addCase(fetchNodes.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload;
       });
   },
 });
 
-export const { resetError, resetLatestBlocks } = latestBlocksSlice.actions;
-export default latestBlocksSlice.reducer;
+export const { resetError, resetNodes } = nodesSlice.actions;
+
+export default nodesSlice.reducer;
