@@ -13,6 +13,7 @@ import BlocksInfiniteScroll from "./BlocksInfiniteScroll";
 import Entries from "./Entries";
 import Nodes from "./Nodes";
 import BlockDetails from "./BlockDetails";
+import EntryDetails from "./EntryDetails";
 import { Container } from "react-bootstrap";
 
 function App() {
@@ -24,6 +25,7 @@ function App() {
           <Route exact path="/" element={<Home />} />
           <Route path="/blocks" element={<BlocksInfiniteScroll />} />
           <Route path="/entries" element={<Entries />} />
+          <Route path="/entry-details" element={<EntryDetails />} />
           <Route path="/integrity" element={<ChainIntegrityChecker />} />
           <Route path="/nodes" element={<Nodes />} />
           <Route path="/blocks/:blockIndex" element={<BlockDetails />} />

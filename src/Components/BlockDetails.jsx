@@ -16,9 +16,9 @@
 
 import React, { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { fetchBlockDetails } from "../store/blockSelectedSlice"; // Adjust the path as necessary
-import { Container, ListGroup } from "react-bootstrap";
+import { Container, ListGroup, Table } from "react-bootstrap";
 import BlocksSwiper from "./BlocksSwiper";
 
 const BlockDetails = () => {
@@ -76,13 +76,33 @@ const BlockDetails = () => {
               <h2 className="h3 mt-5 mb-3">Block Data Entries</h2>
 
               {Array.isArray(block.data) ? (
-                <ListGroup>
-                  {block.data.map((item, index) => (
-                    <ListGroup.Item key={index}>
-                      {JSON.stringify(item)}
-                    </ListGroup.Item>
-                  ))}
-                </ListGroup>
+                <Table striped bordered hover>
+                  <thead>
+                    <tr>
+                      <th>Entry ID</th>
+                      <th>Data</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {block.data.map((item, index) => (
+                      <tr key={index}>
+                        <td>
+                          <Link
+                            to={`/entry-details`}
+                            state={{
+                              entryId: item.entryId,
+                              blockIndex: block.index,
+                              data: item.data,
+                            }}
+                          >
+                            {item.entryId}
+                          </Link>
+                        </td>
+                        <td>{JSON.stringify(item.data)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </Table>
               ) : (
                 <p>{JSON.stringify(block.data)}</p>
               )}

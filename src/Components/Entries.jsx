@@ -66,7 +66,13 @@ const Entries = () => {
         <tbody>
           {entries.map((entry, index) => (
             <tr key={index}>
-              <td>{entry.entryId}</td>
+              <td>
+                {" "}
+                <Link to={`/entry-details`} state={entry}>
+                  {entry.entryId}
+                </Link>
+              </td>
+
               <td>
                 {entry.blockIndex === "pending" ? (
                   "pending"

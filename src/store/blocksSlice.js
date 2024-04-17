@@ -21,6 +21,7 @@ export const fetchBlocks = createAsyncThunk(
       const response = await axios.get(
         `/api/blocks?limit=${limit}&sort=${sort}&startWithIndex=${startWithIndex}`
       );
+      console.log(response.data);
       return response.data;
     } catch (error) {
       if (error.response) {
