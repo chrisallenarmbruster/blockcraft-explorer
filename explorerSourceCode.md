@@ -245,7 +245,7 @@ function App() {
           <Route path="/entries" element={<Entries />} />
           <Route path="/integrity" element={<ChainIntegrityChecker />} />
           <Route path="/nodes" element={<Nodes />} />
-          <Route path="/blocks/:blockId" element={<BlockDetails />} />
+          <Route path="/blocks/:blockIndex" element={<BlockDetails />} />
           <Route path="*" element={<h1>Not Found</h1>} />
         </Routes>
       </Container>
@@ -260,13 +260,100 @@ export default App;
 # src/Components/BlockDetails.jsx
 
 ```javascript
-import React from "react";
+/*
+  File: BlockDetails.jsx
+  Description: 
+  This component is responsible for displaying the details of a specific block. 
+  It fetches the block details from the Redux store using the block index obtained 
+  from the URL parameters. 
+
+  The component handles loading and error states, and formats the block's timestamp 
+  into a human-readable format. It also filters out certain properties from the block 
+  object to display them separately, and handles the case where the block's data is 
+  an array.
+
+  At the bottom of the page, it renders a BlocksSwiper component to display the 
+  adjacent blocks in a swiper. The BlocksSwiper is centered on the current block.
+*/
+
+import React, { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { useParams } from "react-router-dom";
+import { fetchBlockDetails } from "../store/blockSelectedSlice"; // Adjust the path as necessary
+import { Container, ListGroup } from "react-bootstrap";
+import BlocksSwiper from "./BlocksSwiper";
 
 const BlockDetails = () => {
+  const { blockIndex } = useParams();
+  const dispatch = useDispatch();
+  const block = useSelector((state) => state.selectedBlock.selectedBlock);
+  const isLoading = useSelector((state) => state.selectedBlock.isLoading);
+  const error = useSelector((state) => state.selectedBlock.error);
+
+  useEffect(() => {
+    console.log(blockIndex);
+    dispatch(fetchBlockDetails(blockIndex));
+  }, [dispatch, blockIndex]);
+
+  if (isLoading) return <p>Loading...</p>;
+  if (error) return <p>Error: {error}</p>;
+
+  const formatDate = (timestamp) => {
+    const date = new Date(timestamp);
+    return date.toLocaleString();
+  };
+
   return (
     <div>
-      <h1>Welcome to the Block Details Page</h1>
-      <p>This is the Block Details page of our application.</p>
+      <h2 className="h3">Block Details for #{block && block.index}</h2>
+
+      {block && (
+        <div>
+          <Container>
+            <p>Index: {block.index}</p>
+            <p>
+              Timestamp: {block.timestamp}: {formatDate(block.timestamp)}
+            </p>
+            <p>Block Creator: {block.blockCreator}</p>
+            <p>Hash: {block.hash}</p>
+            <p>Previous Hash: {block.previousHash}</p>
+            {Object.keys(block)
+              .filter(
+                (prop) =>
+                  ![
+                    "index",
+                    "previousHash",
+                    "timestamp",
+                    "blockCreator",
+                    "hash",
+                    "data",
+                  ].includes(prop)
+              )
+              .map((key) => (
+                <p key={key}>{`${key}: ${block[key]}`}</p>
+              ))}
+          </Container>
+          {block.data && (
+            <>
+              <h2 className="h3 mt-5 mb-3">Block Data Entries</h2>
+
+              {Array.isArray(block.data) ? (
+                <ListGroup>
+                  {block.data.map((item, index) => (
+                    <ListGroup.Item key={index}>
+                      {JSON.stringify(item)}
+                    </ListGroup.Item>
+                  ))}
+                </ListGroup>
+              ) : (
+                <p>{JSON.stringify(block.data)}</p>
+              )}
+            </>
+          )}
+          <h2 className="h3 mt-5 mb-4">Adjacent Blocks</h2>
+          <BlocksSwiper radius={15} centerOnIndex={parseInt(blockIndex, 10)} />
+        </div>
+      )}
     </div>
   );
 };
@@ -545,6 +632,7 @@ export default BlockchainIntegrity;
 import React, { useEffect, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { fetchBlocks, resetError } from "../store/blocksSlice"; // Adjust the import path as needed
+import { Link } from "react-router-dom";
 
 const Blocks = () => {
   const dispatch = useDispatch();
@@ -609,7 +697,8 @@ const Blocks = () => {
       <ul>
         {blocks.map((block, index) => (
           <li key={index}>
-            Block {block.index}: {block.hash}
+            <Link to={`/blocks/${block.index}`}>Block {block.index}</Link>:{" "}
+            {block.hash}
           </li>
         ))}
       </ul>
@@ -625,34 +714,61 @@ export default Blocks;
 # src/Components/BlocksInfiniteScroll.jsx
 
 ```javascript
-import React, { useEffect, useState, useRef } from "react";
+/*
+  File: BlocksInfiniteScroll.jsx
+  Description: 
+  This component renders a list of blocks with infinite scrolling. It fetches blocks 
+  from the Redux store and displays them in a list. When the user scrolls to the bottom 
+  of the list, the component fetches more blocks and appends them to the list.
+
+  The component uses the `useSelector` hook to access the blocks, loading state, next 
+  index reference, and error message from the Redux store. It uses the `useDispatch` 
+  hook to dispatch the `fetchBlocks` action.
+
+  The component uses the `useEffect` hook to fetch blocks when the component mounts and 
+  whenever the user scrolls to the bottom of the page. It also uses the `useEffect` hook 
+  to remove the scroll event listener when the component unmounts.
+
+  The component includes a `handleRowClick` function that navigates to the block's 
+  detail page when a block row is clicked, and a `formatDate` function that formats 
+  the block's timestamp into a human-readable format.
+
+  The component renders a list of blocks, each block in a row. Each row includes the 
+  block's index, creator, timestamp, and hash. The component also renders a loading 
+  message when more blocks are being fetched, and an error message if there was an 
+  error fetching blocks.
+*/
+
+import React, { useEffect, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { fetchBlocks } from "../store/blocksSlice";
+import { Link, useNavigate } from "react-router-dom";
+import { Row, Col } from "react-bootstrap";
 
 const InfiniteScrollBlocks = () => {
+  const navigate = useNavigate();
   const dispatch = useDispatch();
   const { blocks, isLoading, nextIndexReference, error } = useSelector(
     (state) => state.blocks
   );
   const [fetching, setFetching] = useState(false);
-  const scrollRef = useRef(null);
 
   useEffect(() => {
     if (!blocks.length && !isLoading) dispatch(fetchBlocks({}));
   }, [blocks.length, isLoading, dispatch]);
 
   useEffect(() => {
-    const scrollContainer = scrollRef.current;
     const handleScroll = () => {
-      if (!scrollContainer) return;
-      const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
+      const { scrollTop, scrollHeight, clientHeight } =
+        document.documentElement;
+      // You might need to adjust this condition to better fit your needs
       if (scrollHeight - scrollTop <= clientHeight * 1.5 && !fetching) {
         setFetching(true);
       }
     };
 
-    scrollContainer.addEventListener("scroll", handleScroll);
-    return () => scrollContainer.removeEventListener("scroll", handleScroll);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, [fetching]);
 
   useEffect(() => {
@@ -662,16 +778,70 @@ const InfiniteScrollBlocks = () => {
     }
   }, [fetching, nextIndexReference, dispatch]);
 
+  const handleRowClick = (blockIndex) => {
+    navigate(`/blocks/${blockIndex}`);
+  };
+
+  const formatDate = (timestamp) => {
+    const date = new Date(timestamp);
+    return date.toLocaleString();
+  };
+
   return (
-    <div ref={scrollRef} style={{ height: "80vh", overflowY: "auto" }}>
-      {blocks.map((block, index) => (
-        <div key={index}>
-          Block {block.index}: {block.hash}
-        </div>
-      ))}
-      {isLoading && <p>Loading more blocks...</p>}
-      {error && <p>Error fetching blocks: {error}</p>}
-    </div>
+    <>
+      <style>
+        {`
+          .block-row:hover {
+            cursor: pointer;
+            background-color: rgba(13, 202, 240, 0.25); 
+          }
+        `}
+      </style>
+      <div>
+        {blocks.length > 0 && !isLoading && !error && (
+          <>
+            <Row className="fw-bold mt-3 d-none d-md-flex">
+              <Col sm={12} md={2}>
+                Index
+              </Col>
+              <Col sm={12} md={2}>
+                Creator
+              </Col>
+              <Col sm={12} md={4} lg={3}>
+                Timestamp
+              </Col>
+              <Col sm={12} md={4} lg={3}>
+                Hash
+              </Col>
+            </Row>
+            <hr className="d-none d-md-flex"></hr>
+          </>
+        )}
+        {blocks.map((block, index) => (
+          <Row
+            key={index}
+            className="my-2 block-row"
+            onClick={() => handleRowClick(block.index)}
+          >
+            <Col sm={12} md={2} title="Block Index">
+              Block {block.index}
+            </Col>
+            <Col sm={12} md={2} title="Block Creator">
+              {block.blockCreator}
+            </Col>
+            <Col sm={12} md={4} lg={3} title="Timestamp">
+              {formatDate(block.timestamp).split(",")[0]} -{" "}
+              {formatDate(block.timestamp).split(",")[1]}
+            </Col>
+            <Col sm={12} md={4} lg={3} title={`Hash: ${block.hash}`}>
+              {block.hash.slice(0, 5)}...{block.hash.slice(-5)}
+            </Col>
+          </Row>
+        ))}
+        {isLoading && <p>Loading more blocks...</p>}
+        {error && <p>Error fetching blocks: {error}</p>}
+      </div>
+    </>
   );
 };
 
@@ -682,68 +852,80 @@ export default InfiniteScrollBlocks;
 # src/Components/BlocksSwiper.jsx
 
 ```javascript
+/*
+  File: BlocksSwiper.jsx
+  Description: 
+  This component renders a swiper of blocks. It fetches a range of blocks from 
+  the Redux store and displays them in a horizontal scrollable container. The 
+  user can drag to scroll through the blocks. Each block is a link to the 
+  block's detail page. 
+
+  The swiper centers on a specified block index when it first renders and 
+  whenever the specified index changes. The component also handles loading 
+  and error states.
+*/
+
 import React, { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import {
-  fetchLatestBlocks,
-  resetLatestBlocks,
-} from "../store/blocksLatestSlice";
+import { fetchBlocksRange, resetBlocks } from "../store/blocksRangeSlice";
 import { useDrag } from "@use-gesture/react";
 import { Card } from "react-bootstrap";
+import { Link } from "react-router-dom";
 
-const BlocksSwiper = ({ mode = "latest", centerIndex = 0 }) => {
+const BlocksSwiper = ({ radius, centerOnIndex }) => {
   const dispatch = useDispatch();
-  const { latestBlocks } = useSelector((state) => state.latestBlocks);
+  const { blocks, isLoading, error } = useSelector(
+    (state) => state.blocksRange
+  );
   const containerRef = useRef(null);
   const [initialScroll, setInitialScroll] = useState(0);
 
   useEffect(() => {
-    dispatch(fetchLatestBlocks());
+    dispatch(fetchBlocksRange({ radius, centerOnIndex }));
 
     return () => {
-      dispatch(resetLatestBlocks());
+      dispatch(resetBlocks());
     };
-  }, [dispatch]);
+  }, [dispatch, radius, centerOnIndex]);
 
   useEffect(() => {
-    if (containerRef.current && latestBlocks.length > 0) {
-      console.log("Center Index:", centerIndex);
-      let initialScrollPosition = 0;
-
-      if (mode === "centerOnBlock") {
-        // Your existing logic to calculate the initialScrollPosition
-        // for centering on centerIndex
+    if (
+      containerRef.current &&
+      blocks.length > 0 &&
+      centerOnIndex !== undefined
+    ) {
+      const blockArrayIndex = blocks.findIndex(
+        (block) => block.index === centerOnIndex
+      );
+      if (blockArrayIndex !== -1) {
         const containerWidth = containerRef.current.offsetWidth;
         const blockWidth = 100;
         const lineWidth = 33;
-        const blockPlusLineWidth =
-          blockWidth +
-          (centerIndex === latestBlocks.length - 1 ? 0 : lineWidth);
-        initialScrollPosition =
-          blockPlusLineWidth * centerIndex -
+        const initialScrollPosition =
+          (blockWidth + lineWidth) * blockArrayIndex -
           containerWidth / 2 +
           blockWidth / 2;
+        containerRef.current.scrollLeft = initialScrollPosition;
       }
-      // For 'latest' mode, initialScrollPosition remains 0, which is the default
-
-      containerRef.current.scrollLeft = initialScrollPosition;
     }
-  }, [latestBlocks, mode, centerIndex]);
+  }, [blocks, centerOnIndex]);
 
   const bind = useDrag(
-    ({ down, movement: [mx], first }) => {
+    ({ movement: [mx], memo = containerRef.current.scrollLeft }) => {
       if (containerRef.current) {
-        if (first) {
-          setInitialScroll(containerRef.current.scrollLeft);
-        }
-        const newScrollPosition = initialScroll - mx;
-        containerRef.current.scrollLeft = newScrollPosition;
+        containerRef.current.scrollLeft = memo - mx;
       }
+      return memo;
     },
-    {
-      axis: "x",
-    }
+    { axis: "x", filterTaps: true, pointer: { capture: true } }
   );
+
+  const blockArrayIndex = blocks.findIndex(
+    (block) => block.index === centerOnIndex
+  );
+
+  if (isLoading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error}</div>;
 
   return (
     <>
@@ -784,23 +966,27 @@ const BlocksSwiper = ({ mode = "latest", centerIndex = 0 }) => {
         {...bind()}
         className="latest-blocks-swiper overflow-x-auto d-flex flex-row flex-nowrap overflow-auto align-items-center"
       >
-        {latestBlocks.map((block, index) => (
+        {blocks.map((block, index) => (
           <React.Fragment key={block.index}>
             {index !== 0 && (
-              <div className="bg-info">
+              <div className="bg-black">
                 <hr className="horizontal-line my-0"></hr>
               </div>
             )}
-            {/* Horizontal line between cards */}
             <Card
-              className={`miniCard border-2 ${
-                mode === "centerOnBlock" && index === centerIndex
-                  ? "bg-info bg-opacity-75 border-secondary"
+              className={`miniCard border-2 rounded-3 ${
+                index === blockArrayIndex
+                  ? "bg-info bg-opacity-50 border-info"
                   : "bg-info bg-opacity-25 border-info"
               } `}
             >
               <Card.Body className="d-flex align-items-center justify-content-center">
-                <div className="fs-6 no-select">#{block.index}</div>
+                <Link
+                  to={`/blocks/${block.index}`}
+                  className="link-offset-1 link-offset-1-hover link-underline link-underline-opacity-0 link-underline-opacity-75-hover"
+                >
+                  <div className="fs-6 no-select ">#{block.index}</div>
+                </Link>
               </Card.Body>
             </Card>
           </React.Fragment>
@@ -867,7 +1053,7 @@ const Home = () => {
       <h2 className="h3 mt-3">Blockchain Integrity</h2>
       <BlockchainIntegrity />
       <h2 className="h3 mt-3 mb-4">Latest Blocks</h2>
-      <BlocksSwiper />
+      <BlocksSwiper radius={15} />
     </div>
   );
 };
@@ -947,14 +1133,54 @@ export default NavBar;
 # src/Components/Nodes.jsx
 
 ```javascript
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchNodes, resetNodes } from "../store/nodesSlice";
+import { Container, Row, Col, Card } from "react-bootstrap";
+import { Link } from "react-router-dom";
 
 const Nodes = () => {
+  const dispatch = useDispatch();
+  const { nodes, isLoading, error } = useSelector((state) => state.nodes);
+
+  useEffect(() => {
+    dispatch(fetchNodes());
+
+    return () => {
+      dispatch(resetNodes());
+    };
+  }, [dispatch]);
+
+  if (isLoading) return <p>Loading...</p>;
+  if (error) return <p>Error: {error}</p>;
+
   return (
-    <div>
-      <h1>Welcome to Nodes Page</h1>
-      <p>This is the Nodes page of our application.</p>
-    </div>
+    <Container>
+      <h2 className="h3 mb-4">Active Network Nodes</h2>
+      <Row>
+        {nodes.map((node) => (
+          <Col key={node.id} sm={12} md={6} lg={4} className="mb-4">
+            <Link
+              href={`https://${node.url}:${node.webServicePort}`}
+              target="_blank"
+              className="text-decoration-none"
+            >
+              <Card>
+                <Card.Header className="bg-info bg-opacity-25 border-info">
+                  <Card.Title>{node.label}</Card.Title>
+                </Card.Header>
+                <Card.Body>
+                  <Card.Text>IP: {node.ip}</Card.Text>
+                  <Card.Text>URL: {node.url}</Card.Text>
+                  <Card.Text>P2P Port: {node.p2pPort}</Card.Text>
+                  <Card.Text>Web Service Port: {node.webServicePort}</Card.Text>
+                </Card.Body>
+              </Card>
+            </Link>
+          </Col>
+        ))}
+      </Row>
+    </Container>
   );
 };
 
@@ -1042,6 +1268,7 @@ export const fetchBlockDetails = createAsyncThunk(
   "blockSelected/fetchDetails",
   async (blockIndex, { rejectWithValue }) => {
     try {
+      console.log(`Fetching block details for block index: ${blockIndex}`);
       const response = await axios.get(`/api/block/${blockIndex}`);
       return response.data;
     } catch (error) {
@@ -1285,7 +1512,6 @@ export const fetchLatestBlocks = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const response = await axios.get("/api/blocks/latest");
-      console.log(response.data);
       return response.data;
     } catch (error) {
       if (error.response) {
@@ -1336,6 +1562,101 @@ export default latestBlocksSlice.reducer;
 
 ```
 
+# src/store/blocksRangeSlice.js
+
+```javascript
+/*
+  File: blocksRangeSlice.js
+  Description: 
+  This file defines the Redux slice for a range of blocks. It includes the slice's 
+  initial state, reducers, and asynchronous actions.
+
+  The initial state includes an array of blocks, a loading flag, and an error message.
+
+  The `fetchBlocksRange` async action fetches a range of blocks from the server. It 
+  takes an object with `radius` and `centerOnIndex` properties, which specify the 
+  range of blocks to fetch. The action handles loading and error states, and formats 
+  the server response before dispatching the fulfilled action.
+
+  The slice includes reducers for resetting the error message and the blocks array. 
+  It also includes extra reducers for handling the pending, fulfilled, and rejected 
+  actions dispatched by `fetchBlocksRange`.
+
+  The file exports the action creators and the reducer function for the slice.
+*/
+
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import axios from "axios";
+
+const initialState = {
+  blocks: [],
+  isLoading: false,
+  error: null,
+};
+
+export const fetchBlocksRange = createAsyncThunk(
+  "blocksRange/fetchBlocksRange",
+  async ({ radius, centerOnIndex } = {}, { rejectWithValue }) => {
+    try {
+      const params = new URLSearchParams();
+      if (radius !== undefined) params.append("radius", radius);
+      if (centerOnIndex !== undefined)
+        params.append("centerOnIndex", centerOnIndex);
+      const response = await axios.get(
+        `/api/blocks/range?${params.toString()}`
+      );
+
+      return response.data.reverse();
+    } catch (error) {
+      if (error.response) {
+        const message =
+          error.response.data?.message ||
+          `Server responded with status: ${error.response.status}`;
+        return rejectWithValue(message);
+      } else if (error.request) {
+        return rejectWithValue(
+          "The server did not respond. Please try again later."
+        );
+      } else {
+        return rejectWithValue(error.message);
+      }
+    }
+  }
+);
+
+const blocksRangeSlice = createSlice({
+  name: "blocksRange",
+  initialState,
+  reducers: {
+    resetError: (state) => {
+      state.error = null;
+    },
+    resetBlocks: (state) => {
+      state.blocks = [];
+    },
+  },
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchBlocksRange.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(fetchBlocksRange.fulfilled, (state, action) => {
+        state.blocks = action.payload;
+        state.isLoading = false;
+      })
+      .addCase(fetchBlocksRange.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload;
+      });
+  },
+});
+
+export const { resetError, resetBlocks } = blocksRangeSlice.actions;
+export default blocksRangeSlice.reducer;
+
+```
+
 # src/store/blocksSlice.js
 
 ```javascript
@@ -1355,7 +1676,7 @@ const initialState = {
 export const fetchBlocks = createAsyncThunk(
   "blocks/fetchBlocks",
   async (
-    { startWithIndex = 0, limit = 50, sort = "asc" },
+    { startWithIndex = 0, limit = 100, sort = "asc" },
     { rejectWithValue }
   ) => {
     try {
@@ -1439,6 +1760,8 @@ import blockchainIntegrityReducer from "./blockchainIntegritySlice";
 import blocksReducer from "./blocksSlice";
 import latestBlocksReducer from "./blocksLatestSlice";
 import selectedBlockReducer from "./blockSelectedSlice";
+import blocksRangeReducer from "./blocksRangeSlice";
+import nodesReducer from "./nodesSlice";
 
 const store = configureStore({
   reducer: {
@@ -1447,10 +1770,80 @@ const store = configureStore({
     blocks: blocksReducer,
     latestBlocks: latestBlocksReducer,
     selectedBlock: selectedBlockReducer,
+    blocksRange: blocksRangeReducer,
+    nodes: nodesReducer,
   },
 });
 
 export default store;
+
+```
+
+# src/store/nodesSlice.js
+
+```javascript
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import axios from "axios";
+
+const initialState = {
+  nodes: [],
+  isLoading: false,
+  error: null,
+};
+
+export const fetchNodes = createAsyncThunk(
+  "nodes/fetchNodes",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await axios.get("/api/nodes");
+      return response.data;
+    } catch (error) {
+      if (error.response) {
+        return rejectWithValue(
+          `Server responded with status: ${error.response.status}`
+        );
+      } else if (error.request) {
+        return rejectWithValue(
+          "The server did not respond. Please try again later."
+        );
+      } else {
+        return rejectWithValue(error.message);
+      }
+    }
+  }
+);
+
+const nodesSlice = createSlice({
+  name: "nodes",
+  initialState,
+  reducers: {
+    resetError: (state) => {
+      state.error = null;
+    },
+    resetNodes: (state) => {
+      state.nodes = [];
+    },
+  },
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchNodes.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(fetchNodes.fulfilled, (state, action) => {
+        state.nodes = action.payload;
+        state.isLoading = false;
+      })
+      .addCase(fetchNodes.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload;
+      });
+  },
+});
+
+export const { resetError, resetNodes } = nodesSlice.actions;
+
+export default nodesSlice.reducer;
 
 ```
 
@@ -1508,7 +1901,7 @@ function App() {
           <Route path="/entries" element={<Entries />} />
           <Route path="/integrity" element={<ChainIntegrityChecker />} />
           <Route path="/nodes" element={<Nodes />} />
-          <Route path="/blocks/:blockId" element={<BlockDetails />} />
+          <Route path="/blocks/:blockIndex" element={<BlockDetails />} />
           <Route path="*" element={<h1>Not Found</h1>} />
         </Routes>
       </Container>
@@ -1523,13 +1916,100 @@ export default App;
 # src/Components/BlockDetails.jsx
 
 ```javascript
-import React from "react";
+/*
+  File: BlockDetails.jsx
+  Description: 
+  This component is responsible for displaying the details of a specific block. 
+  It fetches the block details from the Redux store using the block index obtained 
+  from the URL parameters. 
+
+  The component handles loading and error states, and formats the block's timestamp 
+  into a human-readable format. It also filters out certain properties from the block 
+  object to display them separately, and handles the case where the block's data is 
+  an array.
+
+  At the bottom of the page, it renders a BlocksSwiper component to display the 
+  adjacent blocks in a swiper. The BlocksSwiper is centered on the current block.
+*/
+
+import React, { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { useParams } from "react-router-dom";
+import { fetchBlockDetails } from "../store/blockSelectedSlice"; // Adjust the path as necessary
+import { Container, ListGroup } from "react-bootstrap";
+import BlocksSwiper from "./BlocksSwiper";
 
 const BlockDetails = () => {
+  const { blockIndex } = useParams();
+  const dispatch = useDispatch();
+  const block = useSelector((state) => state.selectedBlock.selectedBlock);
+  const isLoading = useSelector((state) => state.selectedBlock.isLoading);
+  const error = useSelector((state) => state.selectedBlock.error);
+
+  useEffect(() => {
+    console.log(blockIndex);
+    dispatch(fetchBlockDetails(blockIndex));
+  }, [dispatch, blockIndex]);
+
+  if (isLoading) return <p>Loading...</p>;
+  if (error) return <p>Error: {error}</p>;
+
+  const formatDate = (timestamp) => {
+    const date = new Date(timestamp);
+    return date.toLocaleString();
+  };
+
   return (
     <div>
-      <h1>Welcome to the Block Details Page</h1>
-      <p>This is the Block Details page of our application.</p>
+      <h2 className="h3">Block Details for #{block && block.index}</h2>
+
+      {block && (
+        <div>
+          <Container>
+            <p>Index: {block.index}</p>
+            <p>
+              Timestamp: {block.timestamp}: {formatDate(block.timestamp)}
+            </p>
+            <p>Block Creator: {block.blockCreator}</p>
+            <p>Hash: {block.hash}</p>
+            <p>Previous Hash: {block.previousHash}</p>
+            {Object.keys(block)
+              .filter(
+                (prop) =>
+                  ![
+                    "index",
+                    "previousHash",
+                    "timestamp",
+                    "blockCreator",
+                    "hash",
+                    "data",
+                  ].includes(prop)
+              )
+              .map((key) => (
+                <p key={key}>{`${key}: ${block[key]}`}</p>
+              ))}
+          </Container>
+          {block.data && (
+            <>
+              <h2 className="h3 mt-5 mb-3">Block Data Entries</h2>
+
+              {Array.isArray(block.data) ? (
+                <ListGroup>
+                  {block.data.map((item, index) => (
+                    <ListGroup.Item key={index}>
+                      {JSON.stringify(item)}
+                    </ListGroup.Item>
+                  ))}
+                </ListGroup>
+              ) : (
+                <p>{JSON.stringify(block.data)}</p>
+              )}
+            </>
+          )}
+          <h2 className="h3 mt-5 mb-4">Adjacent Blocks</h2>
+          <BlocksSwiper radius={15} centerOnIndex={parseInt(blockIndex, 10)} />
+        </div>
+      )}
     </div>
   );
 };
@@ -1808,6 +2288,7 @@ export default BlockchainIntegrity;
 import React, { useEffect, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { fetchBlocks, resetError } from "../store/blocksSlice"; // Adjust the import path as needed
+import { Link } from "react-router-dom";
 
 const Blocks = () => {
   const dispatch = useDispatch();
@@ -1872,7 +2353,8 @@ const Blocks = () => {
       <ul>
         {blocks.map((block, index) => (
           <li key={index}>
-            Block {block.index}: {block.hash}
+            <Link to={`/blocks/${block.index}`}>Block {block.index}</Link>:{" "}
+            {block.hash}
           </li>
         ))}
       </ul>
@@ -1888,34 +2370,61 @@ export default Blocks;
 # src/Components/BlocksInfiniteScroll.jsx
 
 ```javascript
-import React, { useEffect, useState, useRef } from "react";
+/*
+  File: BlocksInfiniteScroll.jsx
+  Description: 
+  This component renders a list of blocks with infinite scrolling. It fetches blocks 
+  from the Redux store and displays them in a list. When the user scrolls to the bottom 
+  of the list, the component fetches more blocks and appends them to the list.
+
+  The component uses the `useSelector` hook to access the blocks, loading state, next 
+  index reference, and error message from the Redux store. It uses the `useDispatch` 
+  hook to dispatch the `fetchBlocks` action.
+
+  The component uses the `useEffect` hook to fetch blocks when the component mounts and 
+  whenever the user scrolls to the bottom of the page. It also uses the `useEffect` hook 
+  to remove the scroll event listener when the component unmounts.
+
+  The component includes a `handleRowClick` function that navigates to the block's 
+  detail page when a block row is clicked, and a `formatDate` function that formats 
+  the block's timestamp into a human-readable format.
+
+  The component renders a list of blocks, each block in a row. Each row includes the 
+  block's index, creator, timestamp, and hash. The component also renders a loading 
+  message when more blocks are being fetched, and an error message if there was an 
+  error fetching blocks.
+*/
+
+import React, { useEffect, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { fetchBlocks } from "../store/blocksSlice";
+import { Link, useNavigate } from "react-router-dom";
+import { Row, Col } from "react-bootstrap";
 
 const InfiniteScrollBlocks = () => {
+  const navigate = useNavigate();
   const dispatch = useDispatch();
   const { blocks, isLoading, nextIndexReference, error } = useSelector(
     (state) => state.blocks
   );
   const [fetching, setFetching] = useState(false);
-  const scrollRef = useRef(null);
 
   useEffect(() => {
     if (!blocks.length && !isLoading) dispatch(fetchBlocks({}));
   }, [blocks.length, isLoading, dispatch]);
 
   useEffect(() => {
-    const scrollContainer = scrollRef.current;
     const handleScroll = () => {
-      if (!scrollContainer) return;
-      const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
+      const { scrollTop, scrollHeight, clientHeight } =
+        document.documentElement;
+      // You might need to adjust this condition to better fit your needs
       if (scrollHeight - scrollTop <= clientHeight * 1.5 && !fetching) {
         setFetching(true);
       }
     };
 
-    scrollContainer.addEventListener("scroll", handleScroll);
-    return () => scrollContainer.removeEventListener("scroll", handleScroll);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, [fetching]);
 
   useEffect(() => {
@@ -1925,16 +2434,70 @@ const InfiniteScrollBlocks = () => {
     }
   }, [fetching, nextIndexReference, dispatch]);
 
+  const handleRowClick = (blockIndex) => {
+    navigate(`/blocks/${blockIndex}`);
+  };
+
+  const formatDate = (timestamp) => {
+    const date = new Date(timestamp);
+    return date.toLocaleString();
+  };
+
   return (
-    <div ref={scrollRef} style={{ height: "80vh", overflowY: "auto" }}>
-      {blocks.map((block, index) => (
-        <div key={index}>
-          Block {block.index}: {block.hash}
-        </div>
-      ))}
-      {isLoading && <p>Loading more blocks...</p>}
-      {error && <p>Error fetching blocks: {error}</p>}
-    </div>
+    <>
+      <style>
+        {`
+          .block-row:hover {
+            cursor: pointer;
+            background-color: rgba(13, 202, 240, 0.25); 
+          }
+        `}
+      </style>
+      <div>
+        {blocks.length > 0 && !isLoading && !error && (
+          <>
+            <Row className="fw-bold mt-3 d-none d-md-flex">
+              <Col sm={12} md={2}>
+                Index
+              </Col>
+              <Col sm={12} md={2}>
+                Creator
+              </Col>
+              <Col sm={12} md={4} lg={3}>
+                Timestamp
+              </Col>
+              <Col sm={12} md={4} lg={3}>
+                Hash
+              </Col>
+            </Row>
+            <hr className="d-none d-md-flex"></hr>
+          </>
+        )}
+        {blocks.map((block, index) => (
+          <Row
+            key={index}
+            className="my-2 block-row"
+            onClick={() => handleRowClick(block.index)}
+          >
+            <Col sm={12} md={2} title="Block Index">
+              Block {block.index}
+            </Col>
+            <Col sm={12} md={2} title="Block Creator">
+              {block.blockCreator}
+            </Col>
+            <Col sm={12} md={4} lg={3} title="Timestamp">
+              {formatDate(block.timestamp).split(",")[0]} -{" "}
+              {formatDate(block.timestamp).split(",")[1]}
+            </Col>
+            <Col sm={12} md={4} lg={3} title={`Hash: ${block.hash}`}>
+              {block.hash.slice(0, 5)}...{block.hash.slice(-5)}
+            </Col>
+          </Row>
+        ))}
+        {isLoading && <p>Loading more blocks...</p>}
+        {error && <p>Error fetching blocks: {error}</p>}
+      </div>
+    </>
   );
 };
 
@@ -1945,68 +2508,80 @@ export default InfiniteScrollBlocks;
 # src/Components/BlocksSwiper.jsx
 
 ```javascript
+/*
+  File: BlocksSwiper.jsx
+  Description: 
+  This component renders a swiper of blocks. It fetches a range of blocks from 
+  the Redux store and displays them in a horizontal scrollable container. The 
+  user can drag to scroll through the blocks. Each block is a link to the 
+  block's detail page. 
+
+  The swiper centers on a specified block index when it first renders and 
+  whenever the specified index changes. The component also handles loading 
+  and error states.
+*/
+
 import React, { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import {
-  fetchLatestBlocks,
-  resetLatestBlocks,
-} from "../store/blocksLatestSlice";
+import { fetchBlocksRange, resetBlocks } from "../store/blocksRangeSlice";
 import { useDrag } from "@use-gesture/react";
 import { Card } from "react-bootstrap";
+import { Link } from "react-router-dom";
 
-const BlocksSwiper = ({ mode = "latest", centerIndex = 0 }) => {
+const BlocksSwiper = ({ radius, centerOnIndex }) => {
   const dispatch = useDispatch();
-  const { latestBlocks } = useSelector((state) => state.latestBlocks);
+  const { blocks, isLoading, error } = useSelector(
+    (state) => state.blocksRange
+  );
   const containerRef = useRef(null);
   const [initialScroll, setInitialScroll] = useState(0);
 
   useEffect(() => {
-    dispatch(fetchLatestBlocks());
+    dispatch(fetchBlocksRange({ radius, centerOnIndex }));
 
     return () => {
-      dispatch(resetLatestBlocks());
+      dispatch(resetBlocks());
     };
-  }, [dispatch]);
+  }, [dispatch, radius, centerOnIndex]);
 
   useEffect(() => {
-    if (containerRef.current && latestBlocks.length > 0) {
-      console.log("Center Index:", centerIndex);
-      let initialScrollPosition = 0;
-
-      if (mode === "centerOnBlock") {
-        // Your existing logic to calculate the initialScrollPosition
-        // for centering on centerIndex
+    if (
+      containerRef.current &&
+      blocks.length > 0 &&
+      centerOnIndex !== undefined
+    ) {
+      const blockArrayIndex = blocks.findIndex(
+        (block) => block.index === centerOnIndex
+      );
+      if (blockArrayIndex !== -1) {
         const containerWidth = containerRef.current.offsetWidth;
         const blockWidth = 100;
         const lineWidth = 33;
-        const blockPlusLineWidth =
-          blockWidth +
-          (centerIndex === latestBlocks.length - 1 ? 0 : lineWidth);
-        initialScrollPosition =
-          blockPlusLineWidth * centerIndex -
+        const initialScrollPosition =
+          (blockWidth + lineWidth) * blockArrayIndex -
           containerWidth / 2 +
           blockWidth / 2;
+        containerRef.current.scrollLeft = initialScrollPosition;
       }
-      // For 'latest' mode, initialScrollPosition remains 0, which is the default
-
-      containerRef.current.scrollLeft = initialScrollPosition;
     }
-  }, [latestBlocks, mode, centerIndex]);
+  }, [blocks, centerOnIndex]);
 
   const bind = useDrag(
-    ({ down, movement: [mx], first }) => {
+    ({ movement: [mx], memo = containerRef.current.scrollLeft }) => {
       if (containerRef.current) {
-        if (first) {
-          setInitialScroll(containerRef.current.scrollLeft);
-        }
-        const newScrollPosition = initialScroll - mx;
-        containerRef.current.scrollLeft = newScrollPosition;
+        containerRef.current.scrollLeft = memo - mx;
       }
+      return memo;
     },
-    {
-      axis: "x",
-    }
+    { axis: "x", filterTaps: true, pointer: { capture: true } }
   );
+
+  const blockArrayIndex = blocks.findIndex(
+    (block) => block.index === centerOnIndex
+  );
+
+  if (isLoading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error}</div>;
 
   return (
     <>
@@ -2047,23 +2622,27 @@ const BlocksSwiper = ({ mode = "latest", centerIndex = 0 }) => {
         {...bind()}
         className="latest-blocks-swiper overflow-x-auto d-flex flex-row flex-nowrap overflow-auto align-items-center"
       >
-        {latestBlocks.map((block, index) => (
+        {blocks.map((block, index) => (
           <React.Fragment key={block.index}>
             {index !== 0 && (
-              <div className="bg-info">
+              <div className="bg-black">
                 <hr className="horizontal-line my-0"></hr>
               </div>
             )}
-            {/* Horizontal line between cards */}
             <Card
-              className={`miniCard border-2 ${
-                mode === "centerOnBlock" && index === centerIndex
-                  ? "bg-info bg-opacity-75 border-secondary"
+              className={`miniCard border-2 rounded-3 ${
+                index === blockArrayIndex
+                  ? "bg-info bg-opacity-50 border-info"
                   : "bg-info bg-opacity-25 border-info"
               } `}
             >
               <Card.Body className="d-flex align-items-center justify-content-center">
-                <div className="fs-6 no-select">#{block.index}</div>
+                <Link
+                  to={`/blocks/${block.index}`}
+                  className="link-offset-1 link-offset-1-hover link-underline link-underline-opacity-0 link-underline-opacity-75-hover"
+                >
+                  <div className="fs-6 no-select ">#{block.index}</div>
+                </Link>
               </Card.Body>
             </Card>
           </React.Fragment>
@@ -2130,7 +2709,7 @@ const Home = () => {
       <h2 className="h3 mt-3">Blockchain Integrity</h2>
       <BlockchainIntegrity />
       <h2 className="h3 mt-3 mb-4">Latest Blocks</h2>
-      <BlocksSwiper />
+      <BlocksSwiper radius={15} />
     </div>
   );
 };
@@ -2210,14 +2789,54 @@ export default NavBar;
 # src/Components/Nodes.jsx
 
 ```javascript
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchNodes, resetNodes } from "../store/nodesSlice";
+import { Container, Row, Col, Card } from "react-bootstrap";
+import { Link } from "react-router-dom";
 
 const Nodes = () => {
+  const dispatch = useDispatch();
+  const { nodes, isLoading, error } = useSelector((state) => state.nodes);
+
+  useEffect(() => {
+    dispatch(fetchNodes());
+
+    return () => {
+      dispatch(resetNodes());
+    };
+  }, [dispatch]);
+
+  if (isLoading) return <p>Loading...</p>;
+  if (error) return <p>Error: {error}</p>;
+
   return (
-    <div>
-      <h1>Welcome to Nodes Page</h1>
-      <p>This is the Nodes page of our application.</p>
-    </div>
+    <Container>
+      <h2 className="h3 mb-4">Active Network Nodes</h2>
+      <Row>
+        {nodes.map((node) => (
+          <Col key={node.id} sm={12} md={6} lg={4} className="mb-4">
+            <Link
+              href={`https://${node.url}:${node.webServicePort}`}
+              target="_blank"
+              className="text-decoration-none"
+            >
+              <Card>
+                <Card.Header className="bg-info bg-opacity-25 border-info">
+                  <Card.Title>{node.label}</Card.Title>
+                </Card.Header>
+                <Card.Body>
+                  <Card.Text>IP: {node.ip}</Card.Text>
+                  <Card.Text>URL: {node.url}</Card.Text>
+                  <Card.Text>P2P Port: {node.p2pPort}</Card.Text>
+                  <Card.Text>Web Service Port: {node.webServicePort}</Card.Text>
+                </Card.Body>
+              </Card>
+            </Link>
+          </Col>
+        ))}
+      </Row>
+    </Container>
   );
 };
 
@@ -2305,6 +2924,7 @@ export const fetchBlockDetails = createAsyncThunk(
   "blockSelected/fetchDetails",
   async (blockIndex, { rejectWithValue }) => {
     try {
+      console.log(`Fetching block details for block index: ${blockIndex}`);
       const response = await axios.get(`/api/block/${blockIndex}`);
       return response.data;
     } catch (error) {
@@ -2548,7 +3168,6 @@ export const fetchLatestBlocks = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const response = await axios.get("/api/blocks/latest");
-      console.log(response.data);
       return response.data;
     } catch (error) {
       if (error.response) {
@@ -2599,6 +3218,101 @@ export default latestBlocksSlice.reducer;
 
 ```
 
+# src/store/blocksRangeSlice.js
+
+```javascript
+/*
+  File: blocksRangeSlice.js
+  Description: 
+  This file defines the Redux slice for a range of blocks. It includes the slice's 
+  initial state, reducers, and asynchronous actions.
+
+  The initial state includes an array of blocks, a loading flag, and an error message.
+
+  The `fetchBlocksRange` async action fetches a range of blocks from the server. It 
+  takes an object with `radius` and `centerOnIndex` properties, which specify the 
+  range of blocks to fetch. The action handles loading and error states, and formats 
+  the server response before dispatching the fulfilled action.
+
+  The slice includes reducers for resetting the error message and the blocks array. 
+  It also includes extra reducers for handling the pending, fulfilled, and rejected 
+  actions dispatched by `fetchBlocksRange`.
+
+  The file exports the action creators and the reducer function for the slice.
+*/
+
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import axios from "axios";
+
+const initialState = {
+  blocks: [],
+  isLoading: false,
+  error: null,
+};
+
+export const fetchBlocksRange = createAsyncThunk(
+  "blocksRange/fetchBlocksRange",
+  async ({ radius, centerOnIndex } = {}, { rejectWithValue }) => {
+    try {
+      const params = new URLSearchParams();
+      if (radius !== undefined) params.append("radius", radius);
+      if (centerOnIndex !== undefined)
+        params.append("centerOnIndex", centerOnIndex);
+      const response = await axios.get(
+        `/api/blocks/range?${params.toString()}`
+      );
+
+      return response.data.reverse();
+    } catch (error) {
+      if (error.response) {
+        const message =
+          error.response.data?.message ||
+          `Server responded with status: ${error.response.status}`;
+        return rejectWithValue(message);
+      } else if (error.request) {
+        return rejectWithValue(
+          "The server did not respond. Please try again later."
+        );
+      } else {
+        return rejectWithValue(error.message);
+      }
+    }
+  }
+);
+
+const blocksRangeSlice = createSlice({
+  name: "blocksRange",
+  initialState,
+  reducers: {
+    resetError: (state) => {
+      state.error = null;
+    },
+    resetBlocks: (state) => {
+      state.blocks = [];
+    },
+  },
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchBlocksRange.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(fetchBlocksRange.fulfilled, (state, action) => {
+        state.blocks = action.payload;
+        state.isLoading = false;
+      })
+      .addCase(fetchBlocksRange.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload;
+      });
+  },
+});
+
+export const { resetError, resetBlocks } = blocksRangeSlice.actions;
+export default blocksRangeSlice.reducer;
+
+```
+
 # src/store/blocksSlice.js
 
 ```javascript
@@ -2618,7 +3332,7 @@ const initialState = {
 export const fetchBlocks = createAsyncThunk(
   "blocks/fetchBlocks",
   async (
-    { startWithIndex = 0, limit = 50, sort = "asc" },
+    { startWithIndex = 0, limit = 100, sort = "asc" },
     { rejectWithValue }
   ) => {
     try {
@@ -2702,6 +3416,8 @@ import blockchainIntegrityReducer from "./blockchainIntegritySlice";
 import blocksReducer from "./blocksSlice";
 import latestBlocksReducer from "./blocksLatestSlice";
 import selectedBlockReducer from "./blockSelectedSlice";
+import blocksRangeReducer from "./blocksRangeSlice";
+import nodesReducer from "./nodesSlice";
 
 const store = configureStore({
   reducer: {
@@ -2710,10 +3426,80 @@ const store = configureStore({
     blocks: blocksReducer,
     latestBlocks: latestBlocksReducer,
     selectedBlock: selectedBlockReducer,
+    blocksRange: blocksRangeReducer,
+    nodes: nodesReducer,
   },
 });
 
 export default store;
+
+```
+
+# src/store/nodesSlice.js
+
+```javascript
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import axios from "axios";
+
+const initialState = {
+  nodes: [],
+  isLoading: false,
+  error: null,
+};
+
+export const fetchNodes = createAsyncThunk(
+  "nodes/fetchNodes",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await axios.get("/api/nodes");
+      return response.data;
+    } catch (error) {
+      if (error.response) {
+        return rejectWithValue(
+          `Server responded with status: ${error.response.status}`
+        );
+      } else if (error.request) {
+        return rejectWithValue(
+          "The server did not respond. Please try again later."
+        );
+      } else {
+        return rejectWithValue(error.message);
+      }
+    }
+  }
+);
+
+const nodesSlice = createSlice({
+  name: "nodes",
+  initialState,
+  reducers: {
+    resetError: (state) => {
+      state.error = null;
+    },
+    resetNodes: (state) => {
+      state.nodes = [];
+    },
+  },
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchNodes.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(fetchNodes.fulfilled, (state, action) => {
+        state.nodes = action.payload;
+        state.isLoading = false;
+      })
+      .addCase(fetchNodes.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload;
+      });
+  },
+});
+
+export const { resetError, resetNodes } = nodesSlice.actions;
+
+export default nodesSlice.reducer;
 
 ```
 
