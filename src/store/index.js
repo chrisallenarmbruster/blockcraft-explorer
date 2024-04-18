@@ -8,7 +8,6 @@ import blockchainInfoReducer from "./blockchainInfoSlice";
 import blockchainIntegrityReducer from "./blockchainIntegritySlice";
 import blocksReducer from "./blocksSlice";
 import selectedBlockReducer from "./blockSelectedSlice";
-import blocksRangeReducer from "./blocksRangeSlice";
 import nodesReducer from "./nodesSlice";
 import entriesReducer from "./entriesSlice";
 
@@ -18,9 +17,8 @@ const store = configureStore({
     blockchainIntegrity: blockchainIntegrityReducer,
     blocks: blocksReducer,
     selectedBlock: selectedBlockReducer,
-    blocksRange: blocksRangeReducer,
-    nodes: nodesReducer,
     entries: entriesReducer,
+    nodes: nodesReducer,
   },
 });
 

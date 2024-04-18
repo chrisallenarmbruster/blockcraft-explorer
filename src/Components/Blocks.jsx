@@ -1,77 +1,126 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { fetchBlocks, resetError } from "../store/blocksSlice"; // Adjust the import path as needed
-import { Link } from "react-router-dom";
+import { fetchBlocks, resetBlocks } from "../store/blocksSlice";
+import { Button, Alert, Spinner, Table } from "react-bootstrap";
+import { Link, useNavigate } from "react-router-dom";
 
 const Blocks = () => {
+  const { blocks, meta, isLoading, error } = useSelector(
+    (state) => state.blocks
+  );
   const dispatch = useDispatch();
-  const {
-    blocks,
-    isLoading,
-    sort,
-    lastFetchedIndex,
-    nextIndexReference,
-    error,
-  } = useSelector((state) => state.blocks);
-  const [isFetching, setIsFetching] = useState(false);
+  const navigate = useNavigate();
+
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
-    if (!blocks.length && !isLoading) {
-      dispatch(fetchBlocks({ sort: "asc" }));
-    }
-  }, [dispatch, blocks.length]);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      const nearBottom =
-        window.innerHeight + window.scrollY >=
-        document.documentElement.offsetHeight - 100;
-      const nearTop = window.scrollY <= 100;
-      if (
-        (nearBottom && sort === "asc") ||
-        (nearTop && nextIndexReference && sort === "asc")
-      ) {
-        if (!isFetching) {
-          setIsFetching(true);
-          fetchMoreBlocks();
-        }
-      }
-    };
-
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [isFetching, sort]);
-
-  const fetchMoreBlocks = () => {
     dispatch(
       fetchBlocks({
-        startWithIndex: lastFetchedIndex + 1,
-        sort,
-        limit: 10,
+        scope: "all",
+        sort: "desc",
+        page: currentPage,
+        pageLimit: 30,
       })
-    ).finally(() => setIsFetching(false));
+    );
+
+    return () => {
+      dispatch(resetBlocks());
+    };
+  }, [dispatch, currentPage]);
+
+  const handlePrevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
   };
 
-  const switchSortOrder = () => {
-    const newSortOrder = sort === "asc" ? "desc" : "asc";
-    dispatch(fetchBlocks({ sort: newSortOrder }));
+  const handleNextPage = () => {
+    if (currentPage < meta.pages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+
+  if (isLoading)
+    return (
+      <Spinner animation="border" role="status">
+        <span className="visually-hidden">Loading...</span>
+      </Spinner>
+    );
+
+  if (error)
+    return (
+      <Alert
+        variant="danger"
+        onClose={() => dispatch(resetError())}
+        dismissible
+      >
+        {error}
+      </Alert>
+    );
+
+  const formatDate = (timestamp) => {
+    const date = new Date(timestamp);
+    return date.toLocaleString();
+  };
+
+  const handleRowClick = (blockIndex) => {
+    navigate(`/blocks/${blockIndex}`);
   };
 
   return (
     <div>
-      <button onClick={switchSortOrder}>
-        Switch Sort Order (Current: {sort.toUpperCase()})
-      </button>
-      {error && <p>Error fetching blocks: {error} </p>}
-      <ul>
-        {blocks.map((block, index) => (
-          <li key={index}>
-            <Link to={`/blocks/${block.index}`}>Block {block.index}</Link>:{" "}
-            {block.hash}
-          </li>
-        ))}
-      </ul>
-      {isLoading && <p>Loading...</p>}
+      <h2 className="h3 mb-4">Blocks</h2>
+      <Table striped bordered hover>
+        <thead>
+          <tr>
+            <th>Block Index</th>
+            <th>Creator</th>
+            <th>Timestamp</th>
+            <th>Hash</th>
+          </tr>
+        </thead>
+        <tbody>
+          {blocks.map((block, index) => (
+            <tr key={index} onClick={() => handleRowClick(block.index)}>
+              <td>
+                <Link to={`/blocks/${block.index}`}>{block.index}</Link>
+              </td>
+              <td>{block.blockCreator}</td>
+              <td>
+                {" "}
+                {formatDate(block.timestamp).split(",")[0]} -{" "}
+                {formatDate(block.timestamp).split(",")[1]}
+              </td>
+              <td title={`Hash: ${block.hash}`}>
+                {block.hash.slice(0, 5)}...{block.hash.slice(-5)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </Table>
+
+      <div className="d-flex flex-column flex-md-row justify-content-between">
+        <span className="me-3">
+          Total Blocks: {meta.total || 0}
+          {"  |  "}
+          Page {currentPage} of {meta.pages || 1}
+        </span>
+        <span>
+          <Button
+            onClick={handlePrevPage}
+            className="me-1"
+            disabled={currentPage === 1}
+          >
+            Prev
+          </Button>
+          <Button
+            onClick={handleNextPage}
+            disabled={currentPage === meta.pages}
+          >
+            Next
+          </Button>
+        </span>
+      </div>
     </div>
   );
 };

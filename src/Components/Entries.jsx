@@ -14,7 +14,12 @@ const Entries = () => {
 
   useEffect(() => {
     dispatch(
-      fetchEntries({ page: currentPage, limit: 30, sort: "desc", scope: "all" })
+      fetchEntries({
+        scope: "all",
+        sort: "desc",
+        page: currentPage,
+        pageLimit: 30,
+      })
     );
 
     return () => {

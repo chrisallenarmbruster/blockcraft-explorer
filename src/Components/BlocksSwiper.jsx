@@ -13,7 +13,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchBlocksRange, resetBlocks } from "../store/blocksRangeSlice";
+import { fetchBlocks, resetBlocks } from "../store/blocksSlice";
 import { useDrag } from "@use-gesture/react";
 import { Card } from "react-bootstrap";
 import { Link } from "react-router-dom";
@@ -27,15 +27,13 @@ const BlocksSwiper = ({
   centerOnIndex,
 }) => {
   const dispatch = useDispatch();
-  const { blocks, isLoading, error } = useSelector(
-    (state) => state.blocksRange
-  );
+  const { blocks, isLoading, error } = useSelector((state) => state.blocks);
   const containerRef = useRef(null);
   const [initialScroll, setInitialScroll] = useState(0);
 
   useEffect(() => {
     dispatch(
-      fetchBlocksRange({
+      fetchBlocks({
         scope,
         sort,
         recordLimit,

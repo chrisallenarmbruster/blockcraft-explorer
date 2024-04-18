@@ -10,10 +10,10 @@ const initialState = {
 
 export const fetchEntries = createAsyncThunk(
   "entries/fetchEntries",
-  async ({ page, limit, sort, scope } = {}, { rejectWithValue }) => {
+  async ({ scope, sort, page, pageLimit } = {}, { rejectWithValue }) => {
     try {
       const response = await axios.get("/api/entries", {
-        params: { page, limit, sort, scope },
+        params: { scope, sort, page, pageLimit },
       });
       return response.data;
     } catch (error) {

@@ -3,31 +3,29 @@ import axios from "axios";
 
 const initialState = {
   blocks: [],
-  blockIds: {},
+  meta: {},
   isLoading: false,
-  sort: "desc",
-  lastFetchedIndex: null,
-  nextIndexReference: null,
   error: null,
 };
 
 export const fetchBlocks = createAsyncThunk(
-  "blocks/fetchBlocks",
+  "blocksRange/fetchBlocks",
   async (
-    { startWithIndex = 0, limit = 100, sort = "asc" },
+    { scope, sort, recordLimit, pageLimit, startIndex, page = 1 } = {},
     { rejectWithValue }
   ) => {
     try {
-      const response = await axios.get(
-        `/api/blocks?limit=${limit}&sort=${sort}&startWithIndex=${startWithIndex}`
-      );
-      console.log(response.data);
+      const response = await axios.get("/api/blocks", {
+        params: { scope, sort, page, pageLimit, recordLimit, startIndex },
+      });
+
       return response.data;
     } catch (error) {
       if (error.response) {
-        return rejectWithValue(
-          `Server responded with status: ${error.response.status}`
-        );
+        const message =
+          error.response.data?.message ||
+          `Server responded with status: ${error.response.status}`;
+        return rejectWithValue(message);
       } else if (error.request) {
         return rejectWithValue(
           "The server did not respond. Please try again later."
@@ -39,39 +37,28 @@ export const fetchBlocks = createAsyncThunk(
   }
 );
 
-export const blocksSlice = createSlice({
+const blocksSlice = createSlice({
   name: "blocks",
   initialState,
   reducers: {
     resetError: (state) => {
       state.error = null;
     },
+    resetBlocks: (state) => {
+      state.blocks = [];
+      state.meta = {};
+    },
   },
   extraReducers: (builder) => {
     builder
-      .addCase(fetchBlocks.pending, (state, action) => {
-        if (!state.blocks.length) {
-          state.isLoading = true;
-        }
+      .addCase(fetchBlocks.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
       })
       .addCase(fetchBlocks.fulfilled, (state, action) => {
-        const { blocks, meta } = action.payload;
-
-        const newBlocks = blocks.filter(
-          (block) => !state.blockIds[block.index]
-        );
-        newBlocks.forEach((block) => (state.blockIds[block.index] = true));
-
+        state.blocks = action.payload.blocks;
+        state.meta = action.payload.meta;
         state.isLoading = false;
-        state.blocks =
-          state.sort === "asc"
-            ? [...state.blocks, ...newBlocks]
-            : [...newBlocks, ...state.blocks];
-
-        state.lastFetchedIndex = meta.lastIndexInResponse;
-        state.nextIndexReference = meta.nextIndexReference;
-        state.sort = meta.sort;
-        state.error = null;
       })
       .addCase(fetchBlocks.rejected, (state, action) => {
         state.isLoading = false;
@@ -80,5 +67,5 @@ export const blocksSlice = createSlice({
   },
 });
 
-export const { resetError } = blocksSlice.actions;
+export const { resetError, resetBlocks } = blocksSlice.actions;
 export default blocksSlice.reducer;
