@@ -18,7 +18,14 @@ import { useDrag } from "@use-gesture/react";
 import { Card } from "react-bootstrap";
 import { Link } from "react-router-dom";
 
-const BlocksSwiper = ({ radius, centerOnIndex }) => {
+const BlocksSwiper = ({
+  scope,
+  sort,
+  recordLimit,
+  pageLimit,
+  startIndex = 0,
+  centerOnIndex,
+}) => {
   const dispatch = useDispatch();
   const { blocks, isLoading, error } = useSelector(
     (state) => state.blocksRange
@@ -27,12 +34,20 @@ const BlocksSwiper = ({ radius, centerOnIndex }) => {
   const [initialScroll, setInitialScroll] = useState(0);
 
   useEffect(() => {
-    dispatch(fetchBlocksRange({ radius, centerOnIndex }));
+    dispatch(
+      fetchBlocksRange({
+        scope,
+        sort,
+        recordLimit,
+        pageLimit,
+        startIndex,
+      })
+    );
 
     return () => {
       dispatch(resetBlocks());
     };
-  }, [dispatch, radius, centerOnIndex]);
+  }, [dispatch, centerOnIndex]);
 
   useEffect(() => {
     if (

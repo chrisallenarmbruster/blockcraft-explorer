@@ -29,17 +29,20 @@ const initialState = {
 
 export const fetchBlocksRange = createAsyncThunk(
   "blocksRange/fetchBlocksRange",
-  async ({ radius, centerOnIndex } = {}, { rejectWithValue }) => {
+  async (
+    { scope, sort, recordLimit, pageLimit, startIndex } = {},
+    { rejectWithValue }
+  ) => {
     try {
       const params = new URLSearchParams();
-      if (radius !== undefined) params.append("radius", radius);
-      if (centerOnIndex !== undefined)
-        params.append("centerOnIndex", centerOnIndex);
-      const response = await axios.get(
-        `/api/blocks/range?${params.toString()}`
-      );
+      params.append("scope", scope);
+      params.append("sort", sort);
+      params.append("pageLimit", pageLimit);
+      params.append("recordLimit", recordLimit);
+      params.append("startIndex", startIndex);
+      const response = await axios.get("/api/blocks", { params: params });
 
-      return response.data.reverse();
+      return response.data;
     } catch (error) {
       if (error.response) {
         const message =
@@ -75,7 +78,7 @@ const blocksRangeSlice = createSlice({
         state.error = null;
       })
       .addCase(fetchBlocksRange.fulfilled, (state, action) => {
-        state.blocks = action.payload;
+        state.blocks = action.payload.blocks;
         state.isLoading = false;
       })
       .addCase(fetchBlocksRange.rejected, (state, action) => {

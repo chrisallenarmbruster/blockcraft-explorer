@@ -109,7 +109,14 @@ const BlockDetails = () => {
             </>
           )}
           <h2 className="h3 mt-5 mb-4">Adjacent Blocks</h2>
-          <BlocksSwiper radius={15} centerOnIndex={parseInt(blockIndex, 10)} />
+          <BlocksSwiper
+            scope="range"
+            sort="desc"
+            recordLimit={31}
+            pageLimit={31}
+            startIndex={Math.max(parseInt(blockIndex, 10) - 15, 0)}
+            centerOnIndex={parseInt(blockIndex, 10)}
+          />
         </div>
       )}
     </div>
