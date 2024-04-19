@@ -17,7 +17,10 @@
 import React, { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useParams, Link } from "react-router-dom";
-import { fetchBlockDetails } from "../store/blockSelectedSlice"; // Adjust the path as necessary
+import {
+  fetchBlockDetails,
+  resetSelectedBlock,
+} from "../store/blockSelectedSlice";
 import { Container, ListGroup, Table } from "react-bootstrap";
 import BlocksSwiper from "./BlocksSwiper";
 
@@ -30,6 +33,10 @@ const BlockDetails = () => {
 
   useEffect(() => {
     dispatch(fetchBlockDetails(blockIdentifier));
+
+    return () => {
+      dispatch(resetSelectedBlock());
+    };
   }, [dispatch, blockIdentifier]);
 
   if (isLoading) return <p>Loading...</p>;
@@ -97,14 +104,7 @@ const BlockDetails = () => {
                     {block.data.map((item, index) => (
                       <tr key={index}>
                         <td>
-                          <Link
-                            to={`/entry-details`}
-                            state={{
-                              entryId: item.entryId,
-                              blockIndex: block.index,
-                              data: item.data,
-                            }}
-                          >
+                          <Link to={`/entries/${item.entryId}`}>
                             {item.entryId}
                           </Link>
                         </td>

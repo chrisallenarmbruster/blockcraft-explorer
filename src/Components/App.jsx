@@ -23,12 +23,12 @@ function App() {
       <Container className="mt-3">
         <Routes>
           <Route exact path="/" element={<Home />} />
+          <Route path="/blocks/:blockIdentifier" element={<BlockDetails />} />
           <Route path="/blocks" element={<Blocks />} />
+          <Route path="/entries/:entryIdentifier" element={<EntryDetails />} />
           <Route path="/entries" element={<Entries />} />
-          <Route path="/entry-details" element={<EntryDetails />} />
           <Route path="/integrity" element={<ChainIntegrityChecker />} />
           <Route path="/nodes" element={<Nodes />} />
-          <Route path="/blocks/:blockIdentifier" element={<BlockDetails />} />
           <Route path="/search" element={<SearchResults />} />
           <Route path="*" element={<h1>Not Found</h1>} />
         </Routes>

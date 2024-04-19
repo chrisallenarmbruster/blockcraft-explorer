@@ -10,6 +10,7 @@ import blocksReducer from "./blocksSlice";
 import selectedBlockReducer from "./blockSelectedSlice";
 import nodesReducer from "./nodesSlice";
 import entriesReducer from "./entriesSlice";
+import selectedEntryReducer from "./entrySelectedSlice";
 
 const store = configureStore({
   reducer: {
@@ -18,6 +19,7 @@ const store = configureStore({
     blocks: blocksReducer,
     selectedBlock: selectedBlockReducer,
     entries: entriesReducer,
+    selectedEntry: selectedEntryReducer,
     nodes: nodesReducer,
   },
 });

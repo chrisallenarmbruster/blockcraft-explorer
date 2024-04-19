@@ -11,8 +11,8 @@ const SearchResults = () => {
     <Container>
       <h2 className="h3">Search Results</h2>
       <p>
-        No results found for "{query}". Try entering a valid block index, block
-        hash or entry ID.
+        No results found for "{query}". <br></br>Try entering a valid block
+        index, block hash or entry ID.
       </p>
     </Container>
   );

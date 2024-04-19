@@ -73,9 +73,7 @@ const Entries = () => {
             <tr key={index}>
               <td>
                 {" "}
-                <Link to={`/entry-details`} state={entry}>
-                  {entry.entryId}
-                </Link>
+                <Link to={`/entries/${entry.entryId}`}>{entry.entryId}</Link>
               </td>
 
               <td>

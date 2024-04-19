@@ -25,9 +25,14 @@ const NavBar = () => {
 
   const handleSubmit = (event) => {
     event.preventDefault();
-    const parsedTerm = parseInt(searchTerm);
-    if (!isNaN(parsedTerm) && parsedTerm < 1000000000) {
-      navigate(`/blocks/${parsedTerm}`);
+    // const parsedTerm = parseInt(searchTerm);
+    if (/^\d+$/.test(searchTerm) && parseInt(searchTerm) < 1000000000) {
+      navigate(`/blocks/${searchTerm}`);
+    } else if (/^[a-fA-F0-9]{64}$/.test(searchTerm)) {
+      console.log("searchTerm", searchTerm);
+      navigate(`/blocks/${encodeURIComponent(searchTerm)}`);
+    } else if (/^[0-9A-Za-z_-]{21}$/.test(searchTerm)) {
+      navigate(`/entries/${encodeURIComponent(searchTerm)}`);
     } else {
       navigate(`/search?query=${encodeURIComponent(searchTerm)}`);
     }
