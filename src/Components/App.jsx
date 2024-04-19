@@ -13,6 +13,7 @@ import Entries from "./Entries";
 import Nodes from "./Nodes";
 import BlockDetails from "./BlockDetails";
 import EntryDetails from "./EntryDetails";
+import SearchResults from "./SearchResults";
 import { Container } from "react-bootstrap";
 
 function App() {
@@ -28,6 +29,7 @@ function App() {
           <Route path="/integrity" element={<ChainIntegrityChecker />} />
           <Route path="/nodes" element={<Nodes />} />
           <Route path="/blocks/:blockIndex" element={<BlockDetails />} />
+          <Route path="/search" element={<SearchResults />} />
           <Route path="*" element={<h1>Not Found</h1>} />
         </Routes>
       </Container>
