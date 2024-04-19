@@ -3,8 +3,8 @@
   Description: This component renders the navigation bar for the application. It includes navigation links as well as a search form.
 */
 
-import React from "react";
-import { Link } from "react-router-dom";
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Container,
   Navbar,
@@ -13,8 +13,26 @@ import {
   FormControl,
   Button,
 } from "react-bootstrap";
+import { BiSearchAlt2 } from "react-icons/bi";
 
 const NavBar = () => {
+  const [searchTerm, setSearchTerm] = useState("");
+  const navigate = useNavigate();
+
+  const handleInputChange = (event) => {
+    setSearchTerm(event.target.value);
+  };
+
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    const parsedTerm = parseInt(searchTerm);
+    if (!isNaN(parsedTerm) && parsedTerm < 1000000000) {
+      navigate(`/blocks/${parsedTerm}`);
+    } else {
+      navigate(`/search?query=${encodeURIComponent(searchTerm)}`);
+    }
+  };
+
   return (
     <Navbar bg="dark" variant="dark" expand="lg">
       <Container>
@@ -44,14 +62,22 @@ const NavBar = () => {
               Nodes
             </Nav.Link>
           </Nav>
-          <Form className="d-flex">
+          <Form className="d-flex" onSubmit={handleSubmit}>
             <FormControl
               type="search"
-              placeholder="Search"
+              placeholder="Search Blockchain"
               className="me-2"
               aria-label="Search"
+              title="Enter a block index, block hash or entry ID"
+              value={searchTerm}
+              onChange={handleInputChange}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") handleSubmit(event);
+              }}
             />
-            <Button variant="outline-success">Search</Button>
+            <Button variant="outline-success" type="submit">
+              <BiSearchAlt2 />
+            </Button>
           </Form>
         </Navbar.Collapse>
       </Container>

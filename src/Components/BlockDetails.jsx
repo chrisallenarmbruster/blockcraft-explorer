@@ -22,19 +22,29 @@ import { Container, ListGroup, Table } from "react-bootstrap";
 import BlocksSwiper from "./BlocksSwiper";
 
 const BlockDetails = () => {
-  const { blockIndex } = useParams();
+  const { blockIdentifier } = useParams();
   const dispatch = useDispatch();
   const block = useSelector((state) => state.selectedBlock.selectedBlock);
   const isLoading = useSelector((state) => state.selectedBlock.isLoading);
   const error = useSelector((state) => state.selectedBlock.error);
 
   useEffect(() => {
-    console.log(blockIndex);
-    dispatch(fetchBlockDetails(blockIndex));
-  }, [dispatch, blockIndex]);
+    dispatch(fetchBlockDetails(blockIdentifier));
+  }, [dispatch, blockIdentifier]);
 
   if (isLoading) return <p>Loading...</p>;
-  if (error) return <p>Error: {error}</p>;
+  if (error) {
+    if (error === "Server responded with status: 404") {
+      return (
+        <p>
+          No block with {blockIdentifier.length === 64 ? "hash" : "index"} of{" "}
+          {blockIdentifier} could be found in the chain.
+        </p>
+      );
+    } else {
+      return <p>Error: {error}</p>;
+    }
+  }
 
   const formatDate = (timestamp) => {
     const date = new Date(timestamp);
@@ -114,8 +124,8 @@ const BlockDetails = () => {
             sort="desc"
             recordLimit={31}
             pageLimit={31}
-            startIndex={Math.max(parseInt(blockIndex, 10) - 15, 0)}
-            centerOnIndex={parseInt(blockIndex, 10)}
+            startIndex={Math.max(parseInt(block.index, 10) - 15, 0)}
+            centerOnIndex={parseInt(block.index, 10)}
           />
         </div>
       )}

@@ -3,10 +3,9 @@ import axios from "axios";
 
 export const fetchBlockDetails = createAsyncThunk(
   "blockSelected/fetchDetails",
-  async (blockIndex, { rejectWithValue }) => {
+  async (blockIdentifier, { rejectWithValue }) => {
     try {
-      console.log(`Fetching block details for block index: ${blockIndex}`);
-      const response = await axios.get(`/api/block/${blockIndex}`);
+      const response = await axios.get(`/api/blocks/${blockIdentifier}`);
       return response.data;
     } catch (error) {
       if (error.response) {
