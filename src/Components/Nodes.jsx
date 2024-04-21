@@ -26,7 +26,9 @@ const Nodes = () => {
         {nodes.map((node) => (
           <Col key={node.id} sm={12} md={6} lg={4} className="mb-4">
             <a
-              href={`https://${node.url}:${node.webServicePort}`}
+              href={`http${node.url.includes("localhost") ? "" : "s"}://${
+                node.url
+              }:${node.webServicePort}`}
               target="_blank"
               rel="noopener noreferrer"
               className="text-decoration-none"
