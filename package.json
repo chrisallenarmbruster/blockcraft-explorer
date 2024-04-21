@@ -1,6 +1,6 @@
 {
   "name": "blockcraft-explorer",
-  "version": "0.1.0",
+  "version": "0.5.0",
   "description": "React frontend for my Blockcraft blockchain package",
   "main": "src/index.jsx",
   "type": "module",
