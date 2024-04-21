@@ -23,7 +23,7 @@ const Nodes = () => {
     <Container>
       <h2 className="h3 mb-4">Active Network Nodes</h2>
       <Row>
-        {nodes.map((node) => (
+        {nodes.map((node, index) => (
           <Col key={node.id} sm={12} md={6} lg={4} className="mb-4">
             <a
               href={`http${node.url.includes("localhost") ? "" : "s"}://${
@@ -34,8 +34,14 @@ const Nodes = () => {
               className="text-decoration-none"
             >
               <Card>
-                <Card.Header className="bg-info bg-opacity-25 border-info">
-                  <Card.Title>{node.label}</Card.Title>
+                <Card.Header
+                  className={`bg-info ${
+                    index === 0 ? "bg-opacity-50" : "bg-opacity-25"
+                  } border-info`}
+                >
+                  <Card.Title>
+                    {node.label} {index === 0 && "(This Node)"}
+                  </Card.Title>
                 </Card.Header>
                 <Card.Body>
                   <Card.Text>IP: {node.ip}</Card.Text>
