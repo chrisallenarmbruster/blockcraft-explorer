@@ -5,15 +5,16 @@
 
 import React from "react";
 import { Alert, ListGroup } from "react-bootstrap";
+import { BiCheckCircle, BiXCircle } from "react-icons/bi";
 
 const ValidationIcon = ({ isValid, label, errors = [] }) => {
   return (
     <ListGroup.Item className="border-0">
       <span className="me-3">
         {isValid ? (
-          <i className="bi bi-check-lg text-success"></i>
+          <BiCheckCircle className="text-success" size={32} />
         ) : (
-          <i className="bi bi-x-lg text-danger"></i>
+          <BiXCircle className="text-danger" size={32} />
         )}
       </span>
       <span className="fw-bold">{label}</span>

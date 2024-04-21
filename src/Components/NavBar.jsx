@@ -81,7 +81,7 @@ const NavBar = () => {
               }}
             />
             <Button variant="outline-success" type="submit">
-              <BiSearchAlt2 />
+              <BiSearchAlt2 className="text-info" size={24} />
             </Button>
           </Form>
         </Navbar.Collapse>

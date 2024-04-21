@@ -29,8 +29,9 @@ const EntryDetails = () => {
     if (error === "Server responded with status: 404") {
       return (
         <p>
-          No entry with {entryIdentifier.length === 64 ? "hash" : "index"} of{" "}
-          {entryIdentifier} could be found in the chain.
+          No entry with ID of{" "}
+          <span className="text-danger">{entryIdentifier}</span> could be found
+          in the chain.
         </p>
       );
     } else {

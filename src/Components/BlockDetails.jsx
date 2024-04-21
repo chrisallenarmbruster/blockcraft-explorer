@@ -45,7 +45,8 @@ const BlockDetails = () => {
       return (
         <p>
           No block with {blockIdentifier.length === 64 ? "hash" : "index"} of{" "}
-          {blockIdentifier} could be found in the chain.
+          <span className="text-danger">{blockIdentifier}</span> could be found
+          in the chain.
         </p>
       );
     } else {
