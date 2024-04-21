@@ -25,9 +25,10 @@ const Nodes = () => {
       <Row>
         {nodes.map((node) => (
           <Col key={node.id} sm={12} md={6} lg={4} className="mb-4">
-            <Link
+            <a
               href={`https://${node.url}:${node.webServicePort}`}
               target="_blank"
+              rel="noopener noreferrer"
               className="text-decoration-none"
             >
               <Card>
@@ -41,7 +42,7 @@ const Nodes = () => {
                   <Card.Text>Web Service Port: {node.webServicePort}</Card.Text>
                 </Card.Body>
               </Card>
-            </Link>
+            </a>
           </Col>
         ))}
       </Row>
