@@ -57,10 +57,16 @@ const EntryDetails = () => {
                 </Link>
               )}
             </p>
+            <p>From: {entry.from}</p>
+            <p>To: {entry.to}</p>
+            <p>Type: {entry.type}</p>
+            <p>Amount: {entry.amount}</p>
             <p>
               Data:<br></br>
               {entry.data}
             </p>
+            <p>Hash: {entry.hash}</p>
+            <p>Signature: {entry.signature}</p>
           </Container>
         </div>
       )}
