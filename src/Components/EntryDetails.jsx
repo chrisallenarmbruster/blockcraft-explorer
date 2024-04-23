@@ -39,6 +39,11 @@ const EntryDetails = () => {
     }
   }
 
+  const formatDate = (timestamp) => {
+    const date = new Date(timestamp);
+    return date.toLocaleString();
+  };
+
   return (
     <div>
       <h2 className="h3 mb-3">Entry Details</h2>
@@ -62,11 +67,23 @@ const EntryDetails = () => {
             <p>Type: {entry.type}</p>
             <p>Amount: {entry.amount}</p>
             <p>
+              Initiation Timestamp: {entry.initiationTimestamp}:{" "}
+              {formatDate(entry.initiationTimestamp)}
+            </p>
+            <p>
               Data:<br></br>
               {entry.data}
             </p>
             <p>Hash: {entry.hash}</p>
             <p>Signature: {entry.signature}</p>
+            <p>
+              Integrity:{" "}
+              <span className={entry.isValid ? "text-success" : "text-danger"}>
+                {entry.isValid
+                  ? "Hash and Signature pass integrity checks"
+                  : "Hash and/or Signature fail integrity checks"}
+              </span>
+            </p>
           </Container>
         </div>
       )}

@@ -160,7 +160,7 @@ processFiles();
 ```json
 {
   "name": "blockcraft-explorer",
-  "version": "0.1.0",
+  "version": "0.5.0",
   "description": "React frontend for my Blockcraft blockchain package",
   "main": "src/index.jsx",
   "type": "module",
@@ -205,6 +205,7 @@ processFiles();
     "react": "^18.2.0",
     "react-bootstrap": "^2.10.1",
     "react-dom": "^18.2.0",
+    "react-icons": "^5.1.0",
     "react-redux": "^9.1.0",
     "react-router-dom": "^6.22.3",
     "redux": "^5.0.1",
@@ -228,10 +229,11 @@ import ChainIntegrityChecker from "./ChainIntegrityChecker";
 import NavBar from "./NavBar";
 import Home from "./Home";
 import Blocks from "./Blocks";
-import BlocksInfiniteScroll from "./BlocksInfiniteScroll";
 import Entries from "./Entries";
 import Nodes from "./Nodes";
 import BlockDetails from "./BlockDetails";
+import EntryDetails from "./EntryDetails";
+import SearchResults from "./SearchResults";
 import { Container } from "react-bootstrap";
 
 function App() {
@@ -241,11 +243,13 @@ function App() {
       <Container className="mt-3">
         <Routes>
           <Route exact path="/" element={<Home />} />
-          <Route path="/blocks" element={<BlocksInfiniteScroll />} />
+          <Route path="/blocks/:blockIdentifier" element={<BlockDetails />} />
+          <Route path="/blocks" element={<Blocks />} />
+          <Route path="/entries/:entryIdentifier" element={<EntryDetails />} />
           <Route path="/entries" element={<Entries />} />
           <Route path="/integrity" element={<ChainIntegrityChecker />} />
           <Route path="/nodes" element={<Nodes />} />
-          <Route path="/blocks/:blockIndex" element={<BlockDetails />} />
+          <Route path="/search" element={<SearchResults />} />
           <Route path="*" element={<h1>Not Found</h1>} />
         </Routes>
       </Container>
@@ -278,25 +282,43 @@ export default App;
 
 import React, { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useParams } from "react-router-dom";
-import { fetchBlockDetails } from "../store/blockSelectedSlice"; // Adjust the path as necessary
-import { Container, ListGroup } from "react-bootstrap";
+import { useParams, Link } from "react-router-dom";
+import {
+  fetchBlockDetails,
+  resetSelectedBlock,
+} from "../store/blockSelectedSlice";
+import { Container, ListGroup, Table } from "react-bootstrap";
 import BlocksSwiper from "./BlocksSwiper";
 
 const BlockDetails = () => {
-  const { blockIndex } = useParams();
+  const { blockIdentifier } = useParams();
   const dispatch = useDispatch();
   const block = useSelector((state) => state.selectedBlock.selectedBlock);
   const isLoading = useSelector((state) => state.selectedBlock.isLoading);
   const error = useSelector((state) => state.selectedBlock.error);
 
   useEffect(() => {
-    console.log(blockIndex);
-    dispatch(fetchBlockDetails(blockIndex));
-  }, [dispatch, blockIndex]);
+    dispatch(fetchBlockDetails(blockIdentifier));
+
+    return () => {
+      dispatch(resetSelectedBlock());
+    };
+  }, [dispatch, blockIdentifier]);
 
   if (isLoading) return <p>Loading...</p>;
-  if (error) return <p>Error: {error}</p>;
+  if (error) {
+    if (error === "Server responded with status: 404") {
+      return (
+        <p>
+          No block with {blockIdentifier.length === 64 ? "hash" : "index"} of{" "}
+          <span className="text-danger">{blockIdentifier}</span> could be found
+          in the chain.
+        </p>
+      );
+    } else {
+      return <p>Error: {error}</p>;
+    }
+  }
 
   const formatDate = (timestamp) => {
     const date = new Date(timestamp);
@@ -338,20 +360,40 @@ const BlockDetails = () => {
               <h2 className="h3 mt-5 mb-3">Block Data Entries</h2>
 
               {Array.isArray(block.data) ? (
-                <ListGroup>
-                  {block.data.map((item, index) => (
-                    <ListGroup.Item key={index}>
-                      {JSON.stringify(item)}
-                    </ListGroup.Item>
-                  ))}
-                </ListGroup>
+                <Table striped bordered hover>
+                  <thead>
+                    <tr>
+                      <th>Entry ID</th>
+                      <th>Data</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {block.data.map((item, index) => (
+                      <tr key={index}>
+                        <td>
+                          <Link to={`/entries/${item.entryId}`}>
+                            {item.entryId}
+                          </Link>
+                        </td>
+                        <td>{JSON.stringify(item.data)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </Table>
               ) : (
                 <p>{JSON.stringify(block.data)}</p>
               )}
             </>
           )}
           <h2 className="h3 mt-5 mb-4">Adjacent Blocks</h2>
-          <BlocksSwiper radius={15} centerOnIndex={parseInt(blockIndex, 10)} />
+          <BlocksSwiper
+            scope="range"
+            sort="desc"
+            recordLimit={31}
+            pageLimit={31}
+            startIndex={Math.max(parseInt(block.index, 10) - 15, 0)}
+            centerOnIndex={parseInt(block.index, 10)}
+          />
         </div>
       )}
     </div>
@@ -629,80 +671,129 @@ export default BlockchainIntegrity;
 # src/Components/Blocks.jsx
 
 ```javascript
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { fetchBlocks, resetError } from "../store/blocksSlice"; // Adjust the import path as needed
-import { Link } from "react-router-dom";
+import { fetchBlocks, resetBlocks } from "../store/blocksSlice";
+import { Button, Alert, Spinner, Table } from "react-bootstrap";
+import { Link, useNavigate } from "react-router-dom";
 
 const Blocks = () => {
+  const { blocks, meta, isLoading, error } = useSelector(
+    (state) => state.blocks
+  );
   const dispatch = useDispatch();
-  const {
-    blocks,
-    isLoading,
-    sort,
-    lastFetchedIndex,
-    nextIndexReference,
-    error,
-  } = useSelector((state) => state.blocks);
-  const [isFetching, setIsFetching] = useState(false);
+  const navigate = useNavigate();
+
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
-    if (!blocks.length && !isLoading) {
-      dispatch(fetchBlocks({ sort: "asc" }));
-    }
-  }, [dispatch, blocks.length]);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      const nearBottom =
-        window.innerHeight + window.scrollY >=
-        document.documentElement.offsetHeight - 100;
-      const nearTop = window.scrollY <= 100;
-      if (
-        (nearBottom && sort === "asc") ||
-        (nearTop && nextIndexReference && sort === "asc")
-      ) {
-        if (!isFetching) {
-          setIsFetching(true);
-          fetchMoreBlocks();
-        }
-      }
-    };
-
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [isFetching, sort]);
-
-  const fetchMoreBlocks = () => {
     dispatch(
       fetchBlocks({
-        startWithIndex: lastFetchedIndex + 1,
-        sort,
-        limit: 10,
+        scope: "all",
+        sort: "desc",
+        page: currentPage,
+        pageLimit: 30,
       })
-    ).finally(() => setIsFetching(false));
+    );
+
+    return () => {
+      dispatch(resetBlocks());
+    };
+  }, [dispatch, currentPage]);
+
+  const handlePrevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
   };
 
-  const switchSortOrder = () => {
-    const newSortOrder = sort === "asc" ? "desc" : "asc";
-    dispatch(fetchBlocks({ sort: newSortOrder }));
+  const handleNextPage = () => {
+    if (currentPage < meta.pages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+
+  if (isLoading)
+    return (
+      <Spinner animation="border" role="status">
+        <span className="visually-hidden">Loading...</span>
+      </Spinner>
+    );
+
+  if (error)
+    return (
+      <Alert
+        variant="danger"
+        onClose={() => dispatch(resetError())}
+        dismissible
+      >
+        {error}
+      </Alert>
+    );
+
+  const formatDate = (timestamp) => {
+    const date = new Date(timestamp);
+    return date.toLocaleString();
+  };
+
+  const handleRowClick = (blockIndex) => {
+    navigate(`/blocks/${blockIndex}`);
   };
 
   return (
     <div>
-      <button onClick={switchSortOrder}>
-        Switch Sort Order (Current: {sort.toUpperCase()})
-      </button>
-      {error && <p>Error fetching blocks: {error} </p>}
-      <ul>
-        {blocks.map((block, index) => (
-          <li key={index}>
-            <Link to={`/blocks/${block.index}`}>Block {block.index}</Link>:{" "}
-            {block.hash}
-          </li>
-        ))}
-      </ul>
-      {isLoading && <p>Loading...</p>}
+      <h2 className="h3 mb-4">Blocks</h2>
+      <Table striped bordered hover>
+        <thead>
+          <tr>
+            <th>Block Index</th>
+            <th>Creator</th>
+            <th>Timestamp</th>
+            <th>Hash</th>
+          </tr>
+        </thead>
+        <tbody>
+          {blocks.map((block, index) => (
+            <tr key={index} onClick={() => handleRowClick(block.index)}>
+              <td>
+                <Link to={`/blocks/${block.index}`}>{block.index}</Link>
+              </td>
+              <td>{block.blockCreator}</td>
+              <td>
+                {" "}
+                {formatDate(block.timestamp).split(",")[0]} -{" "}
+                {formatDate(block.timestamp).split(",")[1]}
+              </td>
+              <td title={`Hash: ${block.hash}`}>
+                {block.hash.slice(0, 5)}...{block.hash.slice(-5)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </Table>
+
+      <div className="d-flex flex-column flex-md-row justify-content-between">
+        <span className="me-3">
+          Total Blocks: {meta.total || 0}
+          {"  |  "}
+          Page {currentPage} of {meta.pages || 1}
+        </span>
+        <span>
+          <Button
+            onClick={handlePrevPage}
+            className="me-1"
+            disabled={currentPage === 1}
+          >
+            Prev
+          </Button>
+          <Button
+            onClick={handleNextPage}
+            disabled={currentPage === meta.pages}
+          >
+            Next
+          </Button>
+        </span>
+      </div>
     </div>
   );
 };
@@ -867,26 +958,39 @@ export default InfiniteScrollBlocks;
 
 import React, { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchBlocksRange, resetBlocks } from "../store/blocksRangeSlice";
+import { fetchBlocks, resetBlocks } from "../store/blocksSlice";
 import { useDrag } from "@use-gesture/react";
 import { Card } from "react-bootstrap";
 import { Link } from "react-router-dom";
 
-const BlocksSwiper = ({ radius, centerOnIndex }) => {
+const BlocksSwiper = ({
+  scope,
+  sort,
+  recordLimit,
+  pageLimit,
+  startIndex = 0,
+  centerOnIndex,
+}) => {
   const dispatch = useDispatch();
-  const { blocks, isLoading, error } = useSelector(
-    (state) => state.blocksRange
-  );
+  const { blocks, isLoading, error } = useSelector((state) => state.blocks);
   const containerRef = useRef(null);
   const [initialScroll, setInitialScroll] = useState(0);
 
   useEffect(() => {
-    dispatch(fetchBlocksRange({ radius, centerOnIndex }));
+    dispatch(
+      fetchBlocks({
+        scope,
+        sort,
+        recordLimit,
+        pageLimit,
+        startIndex,
+      })
+    );
 
     return () => {
       dispatch(resetBlocks());
     };
-  }, [dispatch, radius, centerOnIndex]);
+  }, [dispatch, centerOnIndex]);
 
   useEffect(() => {
     if (
@@ -1022,18 +1126,209 @@ export default ChainIntegrityChecker;
 # src/Components/Entries.jsx
 
 ```javascript
-import React from "react";
+import React, { useState, useEffect } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import { fetchEntries, resetError, resetEntries } from "../store/entriesSlice";
+import { Button, Alert, Spinner, Table } from "react-bootstrap";
+import { Link } from "react-router-dom";
 
 const Entries = () => {
+  const { entries, meta, isLoading, error } = useSelector(
+    (state) => state.entries
+  );
+  const dispatch = useDispatch();
+
+  const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    dispatch(
+      fetchEntries({
+        scope: "all",
+        sort: "desc",
+        page: currentPage,
+        pageLimit: 30,
+      })
+    );
+
+    return () => {
+      dispatch(resetEntries());
+    };
+  }, [dispatch, currentPage]);
+
+  const handlePrevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < meta.pages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+
+  if (isLoading)
+    return (
+      <Spinner animation="border" role="status">
+        <span className="visually-hidden">Loading...</span>
+      </Spinner>
+    );
+
+  if (error)
+    return (
+      <Alert
+        variant="danger"
+        onClose={() => dispatch(resetError())}
+        dismissible
+      >
+        {error}
+      </Alert>
+    );
+
   return (
     <div>
-      <h1>Welcome to Entries Page</h1>
-      <p>This is the Entries page of our application.</p>
+      <h2 className="h3 mb-4">Entries</h2>
+      <Table striped bordered hover>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Block Index</th>
+            <th>Data</th>
+          </tr>
+        </thead>
+        <tbody>
+          {entries.map((entry, index) => (
+            <tr key={index}>
+              <td>
+                {" "}
+                <Link to={`/entries/${entry.entryId}`}>{entry.entryId}</Link>
+              </td>
+
+              <td>
+                {entry.blockIndex === "pending" ? (
+                  "pending"
+                ) : (
+                  <Link to={`/blocks/${entry.blockIndex}`}>
+                    {entry.blockIndex}
+                  </Link>
+                )}
+              </td>
+              <td>{entry.data}</td>
+            </tr>
+          ))}
+        </tbody>
+      </Table>
+
+      <div className="d-flex flex-column flex-md-row justify-content-between">
+        <span className="me-3">
+          Total Entries: {meta.total || 0}
+          {"  |  "}
+          Page {currentPage} of {meta.pages || 1}
+        </span>
+        <span>
+          <Button
+            onClick={handlePrevPage}
+            className="me-1"
+            disabled={currentPage === 1}
+          >
+            Prev
+          </Button>
+          <Button
+            onClick={handleNextPage}
+            disabled={currentPage === meta.pages}
+          >
+            Next
+          </Button>
+        </span>
+      </div>
     </div>
   );
 };
 
 export default Entries;
+
+```
+
+# src/Components/EntryDetails.jsx
+
+```javascript
+import React, { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { useParams, Link } from "react-router-dom";
+import {
+  fetchEntryDetails,
+  resetSelectedEntry,
+} from "../store/entrySelectedSlice";
+import { Container, ListGroup, Table } from "react-bootstrap";
+
+const EntryDetails = () => {
+  const { entryIdentifier } = useParams();
+
+  const dispatch = useDispatch();
+  const entry = useSelector((state) => state.selectedEntry.selectedEntry);
+  const isLoading = useSelector((state) => state.selectedEntry.isLoading);
+  const error = useSelector((state) => state.selectedEntry.error);
+
+  useEffect(() => {
+    dispatch(fetchEntryDetails(entryIdentifier));
+
+    return () => {
+      dispatch(resetSelectedEntry());
+    };
+  }, [dispatch, entryIdentifier]);
+
+  if (isLoading) return <p>Loading...</p>;
+
+  if (error) {
+    if (error === "Server responded with status: 404") {
+      return (
+        <p>
+          No entry with ID of{" "}
+          <span className="text-danger">{entryIdentifier}</span> could be found
+          in the chain.
+        </p>
+      );
+    } else {
+      return <p>Error: {error}</p>;
+    }
+  }
+
+  return (
+    <div>
+      <h2 className="h3 mb-3">Entry Details</h2>
+
+      {entry && (
+        <div>
+          <Container>
+            <p>Entry ID: {entry.entryId}</p>
+            <p>
+              Block Index:{" "}
+              {entry.blockIndex === "pending" ? (
+                "pending"
+              ) : (
+                <Link to={`/blocks/${entry.blockIndex}`}>
+                  {entry.blockIndex}
+                </Link>
+              )}
+            </p>
+            <p>From: {entry.from}</p>
+            <p>To: {entry.to}</p>
+            <p>Type: {entry.type}</p>
+            <p>Amount: {entry.amount}</p>
+            <p>
+              Data:<br></br>
+              {entry.data}
+            </p>
+            <p>Hash: {entry.hash}</p>
+            <p>Signature: {entry.signature}</p>
+          </Container>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default EntryDetails;
 
 ```
 
@@ -1053,7 +1348,12 @@ const Home = () => {
       <h2 className="h3 mt-3">Blockchain Integrity</h2>
       <BlockchainIntegrity />
       <h2 className="h3 mt-3 mb-4">Latest Blocks</h2>
-      <BlocksSwiper radius={15} />
+      <BlocksSwiper
+        scope="latest"
+        sort="desc"
+        recordLimit={30}
+        pageLimit={30}
+      />
     </div>
   );
 };
@@ -1070,8 +1370,8 @@ export default Home;
   Description: This component renders the navigation bar for the application. It includes navigation links as well as a search form.
 */
 
-import React from "react";
-import { Link } from "react-router-dom";
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Container,
   Navbar,
@@ -1080,8 +1380,31 @@ import {
   FormControl,
   Button,
 } from "react-bootstrap";
+import { BiSearchAlt2 } from "react-icons/bi";
 
 const NavBar = () => {
+  const [searchTerm, setSearchTerm] = useState("");
+  const navigate = useNavigate();
+
+  const handleInputChange = (event) => {
+    setSearchTerm(event.target.value);
+  };
+
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    // const parsedTerm = parseInt(searchTerm);
+    if (/^\d+$/.test(searchTerm) && parseInt(searchTerm) < 1000000000) {
+      navigate(`/blocks/${searchTerm}`);
+    } else if (/^[a-fA-F0-9]{64}$/.test(searchTerm)) {
+      console.log("searchTerm", searchTerm);
+      navigate(`/blocks/${encodeURIComponent(searchTerm)}`);
+    } else if (/^[0-9A-Za-z_-]{21}$/.test(searchTerm)) {
+      navigate(`/entries/${encodeURIComponent(searchTerm)}`);
+    } else {
+      navigate(`/search?query=${encodeURIComponent(searchTerm)}`);
+    }
+  };
+
   return (
     <Navbar bg="dark" variant="dark" expand="lg">
       <Container>
@@ -1111,14 +1434,22 @@ const NavBar = () => {
               Nodes
             </Nav.Link>
           </Nav>
-          <Form className="d-flex">
+          <Form className="d-flex" onSubmit={handleSubmit}>
             <FormControl
               type="search"
-              placeholder="Search"
+              placeholder="Search Blockchain"
               className="me-2"
               aria-label="Search"
+              title="Enter a block index, block hash or entry ID"
+              value={searchTerm}
+              onChange={handleInputChange}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") handleSubmit(event);
+              }}
             />
-            <Button variant="outline-success">Search</Button>
+            <Button variant="outline-success" type="submit">
+              <BiSearchAlt2 className="text-info" size={24} />
+            </Button>
           </Form>
         </Navbar.Collapse>
       </Container>
@@ -1158,16 +1489,25 @@ const Nodes = () => {
     <Container>
       <h2 className="h3 mb-4">Active Network Nodes</h2>
       <Row>
-        {nodes.map((node) => (
+        {nodes.map((node, index) => (
           <Col key={node.id} sm={12} md={6} lg={4} className="mb-4">
-            <Link
-              href={`https://${node.url}:${node.webServicePort}`}
+            <a
+              href={`http${node.url.includes("localhost") ? "" : "s"}://${
+                node.url
+              }:${node.webServicePort}`}
               target="_blank"
+              rel="noopener noreferrer"
               className="text-decoration-none"
             >
               <Card>
-                <Card.Header className="bg-info bg-opacity-25 border-info">
-                  <Card.Title>{node.label}</Card.Title>
+                <Card.Header
+                  className={`bg-info ${
+                    index === 0 ? "bg-opacity-50" : "bg-opacity-25"
+                  } border-info`}
+                >
+                  <Card.Title>
+                    {node.label} {index === 0 && "(This Node)"}
+                  </Card.Title>
                 </Card.Header>
                 <Card.Body>
                   <Card.Text>IP: {node.ip}</Card.Text>
@@ -1176,7 +1516,7 @@ const Nodes = () => {
                   <Card.Text>Web Service Port: {node.webServicePort}</Card.Text>
                 </Card.Body>
               </Card>
-            </Link>
+            </a>
           </Col>
         ))}
       </Row>
@@ -1185,6 +1525,33 @@ const Nodes = () => {
 };
 
 export default Nodes;
+
+```
+
+# src/Components/SearchResults.jsx
+
+```javascript
+import React from "react";
+import { Container } from "react-bootstrap";
+import { useLocation } from "react-router-dom";
+
+const SearchResults = () => {
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  const query = params.get("query");
+
+  return (
+    <Container>
+      <h2 className="h3">Search Results</h2>
+      <p>
+        No results found for <span className="text-danger">"{query}"</span>.{" "}
+        <br></br>Try entering a valid block index, block hash or entry ID.
+      </p>
+    </Container>
+  );
+};
+
+export default SearchResults;
 
 ```
 
@@ -1198,15 +1565,16 @@ export default Nodes;
 
 import React from "react";
 import { Alert, ListGroup } from "react-bootstrap";
+import { BiCheckCircle, BiXCircle } from "react-icons/bi";
 
 const ValidationIcon = ({ isValid, label, errors = [] }) => {
   return (
     <ListGroup.Item className="border-0">
       <span className="me-3">
         {isValid ? (
-          <i className="bi bi-check-lg text-success"></i>
+          <BiCheckCircle className="text-success" size={32} />
         ) : (
-          <i className="bi bi-x-lg text-danger"></i>
+          <BiXCircle className="text-danger" size={32} />
         )}
       </span>
       <span className="fw-bold">{label}</span>
@@ -1266,10 +1634,9 @@ import axios from "axios";
 
 export const fetchBlockDetails = createAsyncThunk(
   "blockSelected/fetchDetails",
-  async (blockIndex, { rejectWithValue }) => {
+  async (blockIdentifier, { rejectWithValue }) => {
     try {
-      console.log(`Fetching block details for block index: ${blockIndex}`);
-      const response = await axios.get(`/api/block/${blockIndex}`);
+      const response = await axios.get(`/api/blocks/${blockIdentifier}`);
       return response.data;
     } catch (error) {
       if (error.response) {
@@ -1495,118 +1862,31 @@ export default blockchainIntegritySlice.reducer;
 
 ```
 
-# src/store/blocksLatestSlice.js
+# src/store/blocksSlice.js
 
 ```javascript
-import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import axios from "axios";
-
-const initialState = {
-  latestBlocks: [],
-  isLoading: false,
-  error: null,
-};
-
-export const fetchLatestBlocks = createAsyncThunk(
-  "latestBlocks/fetchLatestBlocks",
-  async (_, { rejectWithValue }) => {
-    try {
-      const response = await axios.get("/api/blocks/latest");
-      return response.data;
-    } catch (error) {
-      if (error.response) {
-        return rejectWithValue(
-          `Server responded with status: ${error.response.status}`
-        );
-      } else if (error.request) {
-        return rejectWithValue(
-          "The server did not respond. Please try again later."
-        );
-      } else {
-        return rejectWithValue(error.message);
-      }
-    }
-  }
-);
-
-const latestBlocksSlice = createSlice({
-  name: "latestBlocks",
-  initialState,
-  reducers: {
-    resetError: (state) => {
-      state.error = null;
-    },
-    resetLatestBlocks: (state) => {
-      state.latestBlocks = [];
-    },
-  },
-  extraReducers: (builder) => {
-    builder
-      .addCase(fetchLatestBlocks.pending, (state) => {
-        state.isLoading = true;
-        state.error = null;
-      })
-      .addCase(fetchLatestBlocks.fulfilled, (state, action) => {
-        state.latestBlocks = action.payload;
-        state.isLoading = false;
-      })
-      .addCase(fetchLatestBlocks.rejected, (state, action) => {
-        state.isLoading = false;
-        state.error = action.payload;
-      });
-  },
-});
-
-export const { resetError, resetLatestBlocks } = latestBlocksSlice.actions;
-export default latestBlocksSlice.reducer;
-
-```
-
-# src/store/blocksRangeSlice.js
-
-```javascript
-/*
-  File: blocksRangeSlice.js
-  Description: 
-  This file defines the Redux slice for a range of blocks. It includes the slice's 
-  initial state, reducers, and asynchronous actions.
-
-  The initial state includes an array of blocks, a loading flag, and an error message.
-
-  The `fetchBlocksRange` async action fetches a range of blocks from the server. It 
-  takes an object with `radius` and `centerOnIndex` properties, which specify the 
-  range of blocks to fetch. The action handles loading and error states, and formats 
-  the server response before dispatching the fulfilled action.
-
-  The slice includes reducers for resetting the error message and the blocks array. 
-  It also includes extra reducers for handling the pending, fulfilled, and rejected 
-  actions dispatched by `fetchBlocksRange`.
-
-  The file exports the action creators and the reducer function for the slice.
-*/
-
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
 
 const initialState = {
   blocks: [],
+  meta: {},
   isLoading: false,
   error: null,
 };
 
-export const fetchBlocksRange = createAsyncThunk(
-  "blocksRange/fetchBlocksRange",
-  async ({ radius, centerOnIndex } = {}, { rejectWithValue }) => {
+export const fetchBlocks = createAsyncThunk(
+  "blocksRange/fetchBlocks",
+  async (
+    { scope, sort, recordLimit, pageLimit, startIndex, page = 1 } = {},
+    { rejectWithValue }
+  ) => {
     try {
-      const params = new URLSearchParams();
-      if (radius !== undefined) params.append("radius", radius);
-      if (centerOnIndex !== undefined)
-        params.append("centerOnIndex", centerOnIndex);
-      const response = await axios.get(
-        `/api/blocks/range?${params.toString()}`
-      );
+      const response = await axios.get("/api/blocks", {
+        params: { scope, sort, page, pageLimit, recordLimit, startIndex },
+      });
 
-      return response.data.reverse();
+      return response.data;
     } catch (error) {
       if (error.response) {
         const message =
@@ -1624,8 +1904,8 @@ export const fetchBlocksRange = createAsyncThunk(
   }
 );
 
-const blocksRangeSlice = createSlice({
-  name: "blocksRange",
+const blocksSlice = createSlice({
+  name: "blocks",
   initialState,
   reducers: {
     resetError: (state) => {
@@ -1633,56 +1913,52 @@ const blocksRangeSlice = createSlice({
     },
     resetBlocks: (state) => {
       state.blocks = [];
+      state.meta = {};
     },
   },
   extraReducers: (builder) => {
     builder
-      .addCase(fetchBlocksRange.pending, (state) => {
+      .addCase(fetchBlocks.pending, (state) => {
         state.isLoading = true;
         state.error = null;
       })
-      .addCase(fetchBlocksRange.fulfilled, (state, action) => {
-        state.blocks = action.payload;
+      .addCase(fetchBlocks.fulfilled, (state, action) => {
+        state.blocks = action.payload.blocks;
+        state.meta = action.payload.meta;
         state.isLoading = false;
       })
-      .addCase(fetchBlocksRange.rejected, (state, action) => {
+      .addCase(fetchBlocks.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload;
       });
   },
 });
 
-export const { resetError, resetBlocks } = blocksRangeSlice.actions;
-export default blocksRangeSlice.reducer;
+export const { resetError, resetBlocks } = blocksSlice.actions;
+export default blocksSlice.reducer;
 
 ```
 
-# src/store/blocksSlice.js
+# src/store/entriesSlice.js
 
 ```javascript
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
 
 const initialState = {
-  blocks: [],
-  blockIds: {},
+  entries: [],
+  meta: {},
   isLoading: false,
-  sort: "desc",
-  lastFetchedIndex: null,
-  nextIndexReference: null,
   error: null,
 };
 
-export const fetchBlocks = createAsyncThunk(
-  "blocks/fetchBlocks",
-  async (
-    { startWithIndex = 0, limit = 100, sort = "asc" },
-    { rejectWithValue }
-  ) => {
+export const fetchEntries = createAsyncThunk(
+  "entries/fetchEntries",
+  async ({ scope, sort, page, pageLimit } = {}, { rejectWithValue }) => {
     try {
-      const response = await axios.get(
-        `/api/blocks?limit=${limit}&sort=${sort}&startWithIndex=${startWithIndex}`
-      );
+      const response = await axios.get("/api/entries", {
+        params: { scope, sort, page, pageLimit },
+      });
       return response.data;
     } catch (error) {
       if (error.response) {
@@ -1700,49 +1976,103 @@ export const fetchBlocks = createAsyncThunk(
   }
 );
 
-export const blocksSlice = createSlice({
-  name: "blocks",
+const entriesSlice = createSlice({
+  name: "entries",
   initialState,
   reducers: {
     resetError: (state) => {
       state.error = null;
     },
+    resetEntries: (state) => {
+      state.entries = [];
+      state.meta = {};
+    },
   },
   extraReducers: (builder) => {
     builder
-      .addCase(fetchBlocks.pending, (state, action) => {
-        if (!state.blocks.length) {
-          state.isLoading = true;
-        }
-      })
-      .addCase(fetchBlocks.fulfilled, (state, action) => {
-        const { blocks, meta } = action.payload;
-
-        const newBlocks = blocks.filter(
-          (block) => !state.blockIds[block.index]
-        );
-        newBlocks.forEach((block) => (state.blockIds[block.index] = true));
-
-        state.isLoading = false;
-        state.blocks =
-          state.sort === "asc"
-            ? [...state.blocks, ...newBlocks]
-            : [...newBlocks, ...state.blocks];
-
-        state.lastFetchedIndex = meta.lastIndexInResponse;
-        state.nextIndexReference = meta.nextIndexReference;
-        state.sort = meta.sort;
+      .addCase(fetchEntries.pending, (state) => {
+        state.isLoading = true;
         state.error = null;
       })
-      .addCase(fetchBlocks.rejected, (state, action) => {
+      .addCase(fetchEntries.fulfilled, (state, action) => {
+        state.entries = action.payload.entries;
+        state.meta = action.payload.meta;
+        state.isLoading = false;
+      })
+      .addCase(fetchEntries.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload;
       });
   },
 });
 
-export const { resetError } = blocksSlice.actions;
-export default blocksSlice.reducer;
+export const { resetError, resetEntries } = entriesSlice.actions;
+
+export default entriesSlice.reducer;
+
+```
+
+# src/store/entrySelectedSlice.js
+
+```javascript
+import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+import axios from "axios";
+
+export const fetchEntryDetails = createAsyncThunk(
+  "entrySelected/fetchDetails",
+  async (entryIdentifier, { rejectWithValue }) => {
+    try {
+      const response = await axios.get(`/api/entries/${entryIdentifier}`);
+      return response.data;
+    } catch (error) {
+      if (error.response) {
+        return rejectWithValue(
+          `Server responded with status: ${error.response.status}`
+        );
+      } else if (error.request) {
+        return rejectWithValue(
+          "The server did not respond. Please try again later."
+        );
+      } else {
+        return rejectWithValue(error.message);
+      }
+    }
+  }
+);
+
+const initialState = {
+  selectedEntry: null,
+  isLoading: false,
+  error: null,
+};
+
+const entrySelectedSlice = createSlice({
+  name: "entrySelected",
+  initialState,
+  reducers: {
+    resetSelectedEntry: (state) => {
+      state.selectedEntry = null;
+    },
+  },
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchEntryDetails.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(fetchEntryDetails.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.selectedEntry = action.payload;
+        state.error = null;
+      })
+      .addCase(fetchEntryDetails.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload;
+      });
+  },
+});
+
+export const { resetSelectedEntry } = entrySelectedSlice.actions;
+export default entrySelectedSlice.reducer;
 
 ```
 
@@ -1758,19 +2088,19 @@ import { configureStore } from "@reduxjs/toolkit";
 import blockchainInfoReducer from "./blockchainInfoSlice";
 import blockchainIntegrityReducer from "./blockchainIntegritySlice";
 import blocksReducer from "./blocksSlice";
-import latestBlocksReducer from "./blocksLatestSlice";
 import selectedBlockReducer from "./blockSelectedSlice";
-import blocksRangeReducer from "./blocksRangeSlice";
 import nodesReducer from "./nodesSlice";
+import entriesReducer from "./entriesSlice";
+import selectedEntryReducer from "./entrySelectedSlice";
 
 const store = configureStore({
   reducer: {
     blockchainInfo: blockchainInfoReducer,
     blockchainIntegrity: blockchainIntegrityReducer,
     blocks: blocksReducer,
-    latestBlocks: latestBlocksReducer,
     selectedBlock: selectedBlockReducer,
-    blocksRange: blocksRangeReducer,
+    entries: entriesReducer,
+    selectedEntry: selectedEntryReducer,
     nodes: nodesReducer,
   },
 });
@@ -1884,10 +2214,11 @@ import ChainIntegrityChecker from "./ChainIntegrityChecker";
 import NavBar from "./NavBar";
 import Home from "./Home";
 import Blocks from "./Blocks";
-import BlocksInfiniteScroll from "./BlocksInfiniteScroll";
 import Entries from "./Entries";
 import Nodes from "./Nodes";
 import BlockDetails from "./BlockDetails";
+import EntryDetails from "./EntryDetails";
+import SearchResults from "./SearchResults";
 import { Container } from "react-bootstrap";
 
 function App() {
@@ -1897,11 +2228,13 @@ function App() {
       <Container className="mt-3">
         <Routes>
           <Route exact path="/" element={<Home />} />
-          <Route path="/blocks" element={<BlocksInfiniteScroll />} />
+          <Route path="/blocks/:blockIdentifier" element={<BlockDetails />} />
+          <Route path="/blocks" element={<Blocks />} />
+          <Route path="/entries/:entryIdentifier" element={<EntryDetails />} />
           <Route path="/entries" element={<Entries />} />
           <Route path="/integrity" element={<ChainIntegrityChecker />} />
           <Route path="/nodes" element={<Nodes />} />
-          <Route path="/blocks/:blockIndex" element={<BlockDetails />} />
+          <Route path="/search" element={<SearchResults />} />
           <Route path="*" element={<h1>Not Found</h1>} />
         </Routes>
       </Container>
@@ -1934,25 +2267,43 @@ export default App;
 
 import React, { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useParams } from "react-router-dom";
-import { fetchBlockDetails } from "../store/blockSelectedSlice"; // Adjust the path as necessary
-import { Container, ListGroup } from "react-bootstrap";
+import { useParams, Link } from "react-router-dom";
+import {
+  fetchBlockDetails,
+  resetSelectedBlock,
+} from "../store/blockSelectedSlice";
+import { Container, ListGroup, Table } from "react-bootstrap";
 import BlocksSwiper from "./BlocksSwiper";
 
 const BlockDetails = () => {
-  const { blockIndex } = useParams();
+  const { blockIdentifier } = useParams();
   const dispatch = useDispatch();
   const block = useSelector((state) => state.selectedBlock.selectedBlock);
   const isLoading = useSelector((state) => state.selectedBlock.isLoading);
   const error = useSelector((state) => state.selectedBlock.error);
 
   useEffect(() => {
-    console.log(blockIndex);
-    dispatch(fetchBlockDetails(blockIndex));
-  }, [dispatch, blockIndex]);
+    dispatch(fetchBlockDetails(blockIdentifier));
+
+    return () => {
+      dispatch(resetSelectedBlock());
+    };
+  }, [dispatch, blockIdentifier]);
 
   if (isLoading) return <p>Loading...</p>;
-  if (error) return <p>Error: {error}</p>;
+  if (error) {
+    if (error === "Server responded with status: 404") {
+      return (
+        <p>
+          No block with {blockIdentifier.length === 64 ? "hash" : "index"} of{" "}
+          <span className="text-danger">{blockIdentifier}</span> could be found
+          in the chain.
+        </p>
+      );
+    } else {
+      return <p>Error: {error}</p>;
+    }
+  }
 
   const formatDate = (timestamp) => {
     const date = new Date(timestamp);
@@ -1994,20 +2345,40 @@ const BlockDetails = () => {
               <h2 className="h3 mt-5 mb-3">Block Data Entries</h2>
 
               {Array.isArray(block.data) ? (
-                <ListGroup>
-                  {block.data.map((item, index) => (
-                    <ListGroup.Item key={index}>
-                      {JSON.stringify(item)}
-                    </ListGroup.Item>
-                  ))}
-                </ListGroup>
+                <Table striped bordered hover>
+                  <thead>
+                    <tr>
+                      <th>Entry ID</th>
+                      <th>Data</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {block.data.map((item, index) => (
+                      <tr key={index}>
+                        <td>
+                          <Link to={`/entries/${item.entryId}`}>
+                            {item.entryId}
+                          </Link>
+                        </td>
+                        <td>{JSON.stringify(item.data)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </Table>
               ) : (
                 <p>{JSON.stringify(block.data)}</p>
               )}
             </>
           )}
           <h2 className="h3 mt-5 mb-4">Adjacent Blocks</h2>
-          <BlocksSwiper radius={15} centerOnIndex={parseInt(blockIndex, 10)} />
+          <BlocksSwiper
+            scope="range"
+            sort="desc"
+            recordLimit={31}
+            pageLimit={31}
+            startIndex={Math.max(parseInt(block.index, 10) - 15, 0)}
+            centerOnIndex={parseInt(block.index, 10)}
+          />
         </div>
       )}
     </div>
@@ -2285,80 +2656,129 @@ export default BlockchainIntegrity;
 # src/Components/Blocks.jsx
 
 ```javascript
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { fetchBlocks, resetError } from "../store/blocksSlice"; // Adjust the import path as needed
-import { Link } from "react-router-dom";
+import { fetchBlocks, resetBlocks } from "../store/blocksSlice";
+import { Button, Alert, Spinner, Table } from "react-bootstrap";
+import { Link, useNavigate } from "react-router-dom";
 
 const Blocks = () => {
+  const { blocks, meta, isLoading, error } = useSelector(
+    (state) => state.blocks
+  );
   const dispatch = useDispatch();
-  const {
-    blocks,
-    isLoading,
-    sort,
-    lastFetchedIndex,
-    nextIndexReference,
-    error,
-  } = useSelector((state) => state.blocks);
-  const [isFetching, setIsFetching] = useState(false);
+  const navigate = useNavigate();
+
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
-    if (!blocks.length && !isLoading) {
-      dispatch(fetchBlocks({ sort: "asc" }));
-    }
-  }, [dispatch, blocks.length]);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      const nearBottom =
-        window.innerHeight + window.scrollY >=
-        document.documentElement.offsetHeight - 100;
-      const nearTop = window.scrollY <= 100;
-      if (
-        (nearBottom && sort === "asc") ||
-        (nearTop && nextIndexReference && sort === "asc")
-      ) {
-        if (!isFetching) {
-          setIsFetching(true);
-          fetchMoreBlocks();
-        }
-      }
-    };
-
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [isFetching, sort]);
-
-  const fetchMoreBlocks = () => {
     dispatch(
       fetchBlocks({
-        startWithIndex: lastFetchedIndex + 1,
-        sort,
-        limit: 10,
+        scope: "all",
+        sort: "desc",
+        page: currentPage,
+        pageLimit: 30,
       })
-    ).finally(() => setIsFetching(false));
+    );
+
+    return () => {
+      dispatch(resetBlocks());
+    };
+  }, [dispatch, currentPage]);
+
+  const handlePrevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
   };
 
-  const switchSortOrder = () => {
-    const newSortOrder = sort === "asc" ? "desc" : "asc";
-    dispatch(fetchBlocks({ sort: newSortOrder }));
+  const handleNextPage = () => {
+    if (currentPage < meta.pages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+
+  if (isLoading)
+    return (
+      <Spinner animation="border" role="status">
+        <span className="visually-hidden">Loading...</span>
+      </Spinner>
+    );
+
+  if (error)
+    return (
+      <Alert
+        variant="danger"
+        onClose={() => dispatch(resetError())}
+        dismissible
+      >
+        {error}
+      </Alert>
+    );
+
+  const formatDate = (timestamp) => {
+    const date = new Date(timestamp);
+    return date.toLocaleString();
+  };
+
+  const handleRowClick = (blockIndex) => {
+    navigate(`/blocks/${blockIndex}`);
   };
 
   return (
     <div>
-      <button onClick={switchSortOrder}>
-        Switch Sort Order (Current: {sort.toUpperCase()})
-      </button>
-      {error && <p>Error fetching blocks: {error} </p>}
-      <ul>
-        {blocks.map((block, index) => (
-          <li key={index}>
-            <Link to={`/blocks/${block.index}`}>Block {block.index}</Link>:{" "}
-            {block.hash}
-          </li>
-        ))}
-      </ul>
-      {isLoading && <p>Loading...</p>}
+      <h2 className="h3 mb-4">Blocks</h2>
+      <Table striped bordered hover>
+        <thead>
+          <tr>
+            <th>Block Index</th>
+            <th>Creator</th>
+            <th>Timestamp</th>
+            <th>Hash</th>
+          </tr>
+        </thead>
+        <tbody>
+          {blocks.map((block, index) => (
+            <tr key={index} onClick={() => handleRowClick(block.index)}>
+              <td>
+                <Link to={`/blocks/${block.index}`}>{block.index}</Link>
+              </td>
+              <td>{block.blockCreator}</td>
+              <td>
+                {" "}
+                {formatDate(block.timestamp).split(",")[0]} -{" "}
+                {formatDate(block.timestamp).split(",")[1]}
+              </td>
+              <td title={`Hash: ${block.hash}`}>
+                {block.hash.slice(0, 5)}...{block.hash.slice(-5)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </Table>
+
+      <div className="d-flex flex-column flex-md-row justify-content-between">
+        <span className="me-3">
+          Total Blocks: {meta.total || 0}
+          {"  |  "}
+          Page {currentPage} of {meta.pages || 1}
+        </span>
+        <span>
+          <Button
+            onClick={handlePrevPage}
+            className="me-1"
+            disabled={currentPage === 1}
+          >
+            Prev
+          </Button>
+          <Button
+            onClick={handleNextPage}
+            disabled={currentPage === meta.pages}
+          >
+            Next
+          </Button>
+        </span>
+      </div>
     </div>
   );
 };
@@ -2523,26 +2943,39 @@ export default InfiniteScrollBlocks;
 
 import React, { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchBlocksRange, resetBlocks } from "../store/blocksRangeSlice";
+import { fetchBlocks, resetBlocks } from "../store/blocksSlice";
 import { useDrag } from "@use-gesture/react";
 import { Card } from "react-bootstrap";
 import { Link } from "react-router-dom";
 
-const BlocksSwiper = ({ radius, centerOnIndex }) => {
+const BlocksSwiper = ({
+  scope,
+  sort,
+  recordLimit,
+  pageLimit,
+  startIndex = 0,
+  centerOnIndex,
+}) => {
   const dispatch = useDispatch();
-  const { blocks, isLoading, error } = useSelector(
-    (state) => state.blocksRange
-  );
+  const { blocks, isLoading, error } = useSelector((state) => state.blocks);
   const containerRef = useRef(null);
   const [initialScroll, setInitialScroll] = useState(0);
 
   useEffect(() => {
-    dispatch(fetchBlocksRange({ radius, centerOnIndex }));
+    dispatch(
+      fetchBlocks({
+        scope,
+        sort,
+        recordLimit,
+        pageLimit,
+        startIndex,
+      })
+    );
 
     return () => {
       dispatch(resetBlocks());
     };
-  }, [dispatch, radius, centerOnIndex]);
+  }, [dispatch, centerOnIndex]);
 
   useEffect(() => {
     if (
@@ -2678,18 +3111,209 @@ export default ChainIntegrityChecker;
 # src/Components/Entries.jsx
 
 ```javascript
-import React from "react";
+import React, { useState, useEffect } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import { fetchEntries, resetError, resetEntries } from "../store/entriesSlice";
+import { Button, Alert, Spinner, Table } from "react-bootstrap";
+import { Link } from "react-router-dom";
 
 const Entries = () => {
+  const { entries, meta, isLoading, error } = useSelector(
+    (state) => state.entries
+  );
+  const dispatch = useDispatch();
+
+  const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    dispatch(
+      fetchEntries({
+        scope: "all",
+        sort: "desc",
+        page: currentPage,
+        pageLimit: 30,
+      })
+    );
+
+    return () => {
+      dispatch(resetEntries());
+    };
+  }, [dispatch, currentPage]);
+
+  const handlePrevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < meta.pages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+
+  if (isLoading)
+    return (
+      <Spinner animation="border" role="status">
+        <span className="visually-hidden">Loading...</span>
+      </Spinner>
+    );
+
+  if (error)
+    return (
+      <Alert
+        variant="danger"
+        onClose={() => dispatch(resetError())}
+        dismissible
+      >
+        {error}
+      </Alert>
+    );
+
   return (
     <div>
-      <h1>Welcome to Entries Page</h1>
-      <p>This is the Entries page of our application.</p>
+      <h2 className="h3 mb-4">Entries</h2>
+      <Table striped bordered hover>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Block Index</th>
+            <th>Data</th>
+          </tr>
+        </thead>
+        <tbody>
+          {entries.map((entry, index) => (
+            <tr key={index}>
+              <td>
+                {" "}
+                <Link to={`/entries/${entry.entryId}`}>{entry.entryId}</Link>
+              </td>
+
+              <td>
+                {entry.blockIndex === "pending" ? (
+                  "pending"
+                ) : (
+                  <Link to={`/blocks/${entry.blockIndex}`}>
+                    {entry.blockIndex}
+                  </Link>
+                )}
+              </td>
+              <td>{entry.data}</td>
+            </tr>
+          ))}
+        </tbody>
+      </Table>
+
+      <div className="d-flex flex-column flex-md-row justify-content-between">
+        <span className="me-3">
+          Total Entries: {meta.total || 0}
+          {"  |  "}
+          Page {currentPage} of {meta.pages || 1}
+        </span>
+        <span>
+          <Button
+            onClick={handlePrevPage}
+            className="me-1"
+            disabled={currentPage === 1}
+          >
+            Prev
+          </Button>
+          <Button
+            onClick={handleNextPage}
+            disabled={currentPage === meta.pages}
+          >
+            Next
+          </Button>
+        </span>
+      </div>
     </div>
   );
 };
 
 export default Entries;
+
+```
+
+# src/Components/EntryDetails.jsx
+
+```javascript
+import React, { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { useParams, Link } from "react-router-dom";
+import {
+  fetchEntryDetails,
+  resetSelectedEntry,
+} from "../store/entrySelectedSlice";
+import { Container, ListGroup, Table } from "react-bootstrap";
+
+const EntryDetails = () => {
+  const { entryIdentifier } = useParams();
+
+  const dispatch = useDispatch();
+  const entry = useSelector((state) => state.selectedEntry.selectedEntry);
+  const isLoading = useSelector((state) => state.selectedEntry.isLoading);
+  const error = useSelector((state) => state.selectedEntry.error);
+
+  useEffect(() => {
+    dispatch(fetchEntryDetails(entryIdentifier));
+
+    return () => {
+      dispatch(resetSelectedEntry());
+    };
+  }, [dispatch, entryIdentifier]);
+
+  if (isLoading) return <p>Loading...</p>;
+
+  if (error) {
+    if (error === "Server responded with status: 404") {
+      return (
+        <p>
+          No entry with ID of{" "}
+          <span className="text-danger">{entryIdentifier}</span> could be found
+          in the chain.
+        </p>
+      );
+    } else {
+      return <p>Error: {error}</p>;
+    }
+  }
+
+  return (
+    <div>
+      <h2 className="h3 mb-3">Entry Details</h2>
+
+      {entry && (
+        <div>
+          <Container>
+            <p>Entry ID: {entry.entryId}</p>
+            <p>
+              Block Index:{" "}
+              {entry.blockIndex === "pending" ? (
+                "pending"
+              ) : (
+                <Link to={`/blocks/${entry.blockIndex}`}>
+                  {entry.blockIndex}
+                </Link>
+              )}
+            </p>
+            <p>From: {entry.from}</p>
+            <p>To: {entry.to}</p>
+            <p>Type: {entry.type}</p>
+            <p>Amount: {entry.amount}</p>
+            <p>
+              Data:<br></br>
+              {entry.data}
+            </p>
+            <p>Hash: {entry.hash}</p>
+            <p>Signature: {entry.signature}</p>
+          </Container>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default EntryDetails;
 
 ```
 
@@ -2709,7 +3333,12 @@ const Home = () => {
       <h2 className="h3 mt-3">Blockchain Integrity</h2>
       <BlockchainIntegrity />
       <h2 className="h3 mt-3 mb-4">Latest Blocks</h2>
-      <BlocksSwiper radius={15} />
+      <BlocksSwiper
+        scope="latest"
+        sort="desc"
+        recordLimit={30}
+        pageLimit={30}
+      />
     </div>
   );
 };
@@ -2726,8 +3355,8 @@ export default Home;
   Description: This component renders the navigation bar for the application. It includes navigation links as well as a search form.
 */
 
-import React from "react";
-import { Link } from "react-router-dom";
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Container,
   Navbar,
@@ -2736,8 +3365,31 @@ import {
   FormControl,
   Button,
 } from "react-bootstrap";
+import { BiSearchAlt2 } from "react-icons/bi";
 
 const NavBar = () => {
+  const [searchTerm, setSearchTerm] = useState("");
+  const navigate = useNavigate();
+
+  const handleInputChange = (event) => {
+    setSearchTerm(event.target.value);
+  };
+
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    // const parsedTerm = parseInt(searchTerm);
+    if (/^\d+$/.test(searchTerm) && parseInt(searchTerm) < 1000000000) {
+      navigate(`/blocks/${searchTerm}`);
+    } else if (/^[a-fA-F0-9]{64}$/.test(searchTerm)) {
+      console.log("searchTerm", searchTerm);
+      navigate(`/blocks/${encodeURIComponent(searchTerm)}`);
+    } else if (/^[0-9A-Za-z_-]{21}$/.test(searchTerm)) {
+      navigate(`/entries/${encodeURIComponent(searchTerm)}`);
+    } else {
+      navigate(`/search?query=${encodeURIComponent(searchTerm)}`);
+    }
+  };
+
   return (
     <Navbar bg="dark" variant="dark" expand="lg">
       <Container>
@@ -2767,14 +3419,22 @@ const NavBar = () => {
               Nodes
             </Nav.Link>
           </Nav>
-          <Form className="d-flex">
+          <Form className="d-flex" onSubmit={handleSubmit}>
             <FormControl
               type="search"
-              placeholder="Search"
+              placeholder="Search Blockchain"
               className="me-2"
               aria-label="Search"
+              title="Enter a block index, block hash or entry ID"
+              value={searchTerm}
+              onChange={handleInputChange}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") handleSubmit(event);
+              }}
             />
-            <Button variant="outline-success">Search</Button>
+            <Button variant="outline-success" type="submit">
+              <BiSearchAlt2 className="text-info" size={24} />
+            </Button>
           </Form>
         </Navbar.Collapse>
       </Container>
@@ -2814,16 +3474,25 @@ const Nodes = () => {
     <Container>
       <h2 className="h3 mb-4">Active Network Nodes</h2>
       <Row>
-        {nodes.map((node) => (
+        {nodes.map((node, index) => (
           <Col key={node.id} sm={12} md={6} lg={4} className="mb-4">
-            <Link
-              href={`https://${node.url}:${node.webServicePort}`}
+            <a
+              href={`http${node.url.includes("localhost") ? "" : "s"}://${
+                node.url
+              }:${node.webServicePort}`}
               target="_blank"
+              rel="noopener noreferrer"
               className="text-decoration-none"
             >
               <Card>
-                <Card.Header className="bg-info bg-opacity-25 border-info">
-                  <Card.Title>{node.label}</Card.Title>
+                <Card.Header
+                  className={`bg-info ${
+                    index === 0 ? "bg-opacity-50" : "bg-opacity-25"
+                  } border-info`}
+                >
+                  <Card.Title>
+                    {node.label} {index === 0 && "(This Node)"}
+                  </Card.Title>
                 </Card.Header>
                 <Card.Body>
                   <Card.Text>IP: {node.ip}</Card.Text>
@@ -2832,7 +3501,7 @@ const Nodes = () => {
                   <Card.Text>Web Service Port: {node.webServicePort}</Card.Text>
                 </Card.Body>
               </Card>
-            </Link>
+            </a>
           </Col>
         ))}
       </Row>
@@ -2841,6 +3510,33 @@ const Nodes = () => {
 };
 
 export default Nodes;
+
+```
+
+# src/Components/SearchResults.jsx
+
+```javascript
+import React from "react";
+import { Container } from "react-bootstrap";
+import { useLocation } from "react-router-dom";
+
+const SearchResults = () => {
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  const query = params.get("query");
+
+  return (
+    <Container>
+      <h2 className="h3">Search Results</h2>
+      <p>
+        No results found for <span className="text-danger">"{query}"</span>.{" "}
+        <br></br>Try entering a valid block index, block hash or entry ID.
+      </p>
+    </Container>
+  );
+};
+
+export default SearchResults;
 
 ```
 
@@ -2854,15 +3550,16 @@ export default Nodes;
 
 import React from "react";
 import { Alert, ListGroup } from "react-bootstrap";
+import { BiCheckCircle, BiXCircle } from "react-icons/bi";
 
 const ValidationIcon = ({ isValid, label, errors = [] }) => {
   return (
     <ListGroup.Item className="border-0">
       <span className="me-3">
         {isValid ? (
-          <i className="bi bi-check-lg text-success"></i>
+          <BiCheckCircle className="text-success" size={32} />
         ) : (
-          <i className="bi bi-x-lg text-danger"></i>
+          <BiXCircle className="text-danger" size={32} />
         )}
       </span>
       <span className="fw-bold">{label}</span>
@@ -2922,10 +3619,9 @@ import axios from "axios";
 
 export const fetchBlockDetails = createAsyncThunk(
   "blockSelected/fetchDetails",
-  async (blockIndex, { rejectWithValue }) => {
+  async (blockIdentifier, { rejectWithValue }) => {
     try {
-      console.log(`Fetching block details for block index: ${blockIndex}`);
-      const response = await axios.get(`/api/block/${blockIndex}`);
+      const response = await axios.get(`/api/blocks/${blockIdentifier}`);
       return response.data;
     } catch (error) {
       if (error.response) {
@@ -3151,118 +3847,31 @@ export default blockchainIntegritySlice.reducer;
 
 ```
 
-# src/store/blocksLatestSlice.js
+# src/store/blocksSlice.js
 
 ```javascript
-import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import axios from "axios";
-
-const initialState = {
-  latestBlocks: [],
-  isLoading: false,
-  error: null,
-};
-
-export const fetchLatestBlocks = createAsyncThunk(
-  "latestBlocks/fetchLatestBlocks",
-  async (_, { rejectWithValue }) => {
-    try {
-      const response = await axios.get("/api/blocks/latest");
-      return response.data;
-    } catch (error) {
-      if (error.response) {
-        return rejectWithValue(
-          `Server responded with status: ${error.response.status}`
-        );
-      } else if (error.request) {
-        return rejectWithValue(
-          "The server did not respond. Please try again later."
-        );
-      } else {
-        return rejectWithValue(error.message);
-      }
-    }
-  }
-);
-
-const latestBlocksSlice = createSlice({
-  name: "latestBlocks",
-  initialState,
-  reducers: {
-    resetError: (state) => {
-      state.error = null;
-    },
-    resetLatestBlocks: (state) => {
-      state.latestBlocks = [];
-    },
-  },
-  extraReducers: (builder) => {
-    builder
-      .addCase(fetchLatestBlocks.pending, (state) => {
-        state.isLoading = true;
-        state.error = null;
-      })
-      .addCase(fetchLatestBlocks.fulfilled, (state, action) => {
-        state.latestBlocks = action.payload;
-        state.isLoading = false;
-      })
-      .addCase(fetchLatestBlocks.rejected, (state, action) => {
-        state.isLoading = false;
-        state.error = action.payload;
-      });
-  },
-});
-
-export const { resetError, resetLatestBlocks } = latestBlocksSlice.actions;
-export default latestBlocksSlice.reducer;
-
-```
-
-# src/store/blocksRangeSlice.js
-
-```javascript
-/*
-  File: blocksRangeSlice.js
-  Description: 
-  This file defines the Redux slice for a range of blocks. It includes the slice's 
-  initial state, reducers, and asynchronous actions.
-
-  The initial state includes an array of blocks, a loading flag, and an error message.
-
-  The `fetchBlocksRange` async action fetches a range of blocks from the server. It 
-  takes an object with `radius` and `centerOnIndex` properties, which specify the 
-  range of blocks to fetch. The action handles loading and error states, and formats 
-  the server response before dispatching the fulfilled action.
-
-  The slice includes reducers for resetting the error message and the blocks array. 
-  It also includes extra reducers for handling the pending, fulfilled, and rejected 
-  actions dispatched by `fetchBlocksRange`.
-
-  The file exports the action creators and the reducer function for the slice.
-*/
-
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
 
 const initialState = {
   blocks: [],
+  meta: {},
   isLoading: false,
   error: null,
 };
 
-export const fetchBlocksRange = createAsyncThunk(
-  "blocksRange/fetchBlocksRange",
-  async ({ radius, centerOnIndex } = {}, { rejectWithValue }) => {
+export const fetchBlocks = createAsyncThunk(
+  "blocksRange/fetchBlocks",
+  async (
+    { scope, sort, recordLimit, pageLimit, startIndex, page = 1 } = {},
+    { rejectWithValue }
+  ) => {
     try {
-      const params = new URLSearchParams();
-      if (radius !== undefined) params.append("radius", radius);
-      if (centerOnIndex !== undefined)
-        params.append("centerOnIndex", centerOnIndex);
-      const response = await axios.get(
-        `/api/blocks/range?${params.toString()}`
-      );
+      const response = await axios.get("/api/blocks", {
+        params: { scope, sort, page, pageLimit, recordLimit, startIndex },
+      });
 
-      return response.data.reverse();
+      return response.data;
     } catch (error) {
       if (error.response) {
         const message =
@@ -3280,8 +3889,8 @@ export const fetchBlocksRange = createAsyncThunk(
   }
 );
 
-const blocksRangeSlice = createSlice({
-  name: "blocksRange",
+const blocksSlice = createSlice({
+  name: "blocks",
   initialState,
   reducers: {
     resetError: (state) => {
@@ -3289,56 +3898,52 @@ const blocksRangeSlice = createSlice({
     },
     resetBlocks: (state) => {
       state.blocks = [];
+      state.meta = {};
     },
   },
   extraReducers: (builder) => {
     builder
-      .addCase(fetchBlocksRange.pending, (state) => {
+      .addCase(fetchBlocks.pending, (state) => {
         state.isLoading = true;
         state.error = null;
       })
-      .addCase(fetchBlocksRange.fulfilled, (state, action) => {
-        state.blocks = action.payload;
+      .addCase(fetchBlocks.fulfilled, (state, action) => {
+        state.blocks = action.payload.blocks;
+        state.meta = action.payload.meta;
         state.isLoading = false;
       })
-      .addCase(fetchBlocksRange.rejected, (state, action) => {
+      .addCase(fetchBlocks.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload;
       });
   },
 });
 
-export const { resetError, resetBlocks } = blocksRangeSlice.actions;
-export default blocksRangeSlice.reducer;
+export const { resetError, resetBlocks } = blocksSlice.actions;
+export default blocksSlice.reducer;
 
 ```
 
-# src/store/blocksSlice.js
+# src/store/entriesSlice.js
 
 ```javascript
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
 
 const initialState = {
-  blocks: [],
-  blockIds: {},
+  entries: [],
+  meta: {},
   isLoading: false,
-  sort: "desc",
-  lastFetchedIndex: null,
-  nextIndexReference: null,
   error: null,
 };
 
-export const fetchBlocks = createAsyncThunk(
-  "blocks/fetchBlocks",
-  async (
-    { startWithIndex = 0, limit = 100, sort = "asc" },
-    { rejectWithValue }
-  ) => {
+export const fetchEntries = createAsyncThunk(
+  "entries/fetchEntries",
+  async ({ scope, sort, page, pageLimit } = {}, { rejectWithValue }) => {
     try {
-      const response = await axios.get(
-        `/api/blocks?limit=${limit}&sort=${sort}&startWithIndex=${startWithIndex}`
-      );
+      const response = await axios.get("/api/entries", {
+        params: { scope, sort, page, pageLimit },
+      });
       return response.data;
     } catch (error) {
       if (error.response) {
@@ -3356,49 +3961,103 @@ export const fetchBlocks = createAsyncThunk(
   }
 );
 
-export const blocksSlice = createSlice({
-  name: "blocks",
+const entriesSlice = createSlice({
+  name: "entries",
   initialState,
   reducers: {
     resetError: (state) => {
       state.error = null;
     },
+    resetEntries: (state) => {
+      state.entries = [];
+      state.meta = {};
+    },
   },
   extraReducers: (builder) => {
     builder
-      .addCase(fetchBlocks.pending, (state, action) => {
-        if (!state.blocks.length) {
-          state.isLoading = true;
-        }
-      })
-      .addCase(fetchBlocks.fulfilled, (state, action) => {
-        const { blocks, meta } = action.payload;
-
-        const newBlocks = blocks.filter(
-          (block) => !state.blockIds[block.index]
-        );
-        newBlocks.forEach((block) => (state.blockIds[block.index] = true));
-
-        state.isLoading = false;
-        state.blocks =
-          state.sort === "asc"
-            ? [...state.blocks, ...newBlocks]
-            : [...newBlocks, ...state.blocks];
-
-        state.lastFetchedIndex = meta.lastIndexInResponse;
-        state.nextIndexReference = meta.nextIndexReference;
-        state.sort = meta.sort;
+      .addCase(fetchEntries.pending, (state) => {
+        state.isLoading = true;
         state.error = null;
       })
-      .addCase(fetchBlocks.rejected, (state, action) => {
+      .addCase(fetchEntries.fulfilled, (state, action) => {
+        state.entries = action.payload.entries;
+        state.meta = action.payload.meta;
+        state.isLoading = false;
+      })
+      .addCase(fetchEntries.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload;
       });
   },
 });
 
-export const { resetError } = blocksSlice.actions;
-export default blocksSlice.reducer;
+export const { resetError, resetEntries } = entriesSlice.actions;
+
+export default entriesSlice.reducer;
+
+```
+
+# src/store/entrySelectedSlice.js
+
+```javascript
+import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+import axios from "axios";
+
+export const fetchEntryDetails = createAsyncThunk(
+  "entrySelected/fetchDetails",
+  async (entryIdentifier, { rejectWithValue }) => {
+    try {
+      const response = await axios.get(`/api/entries/${entryIdentifier}`);
+      return response.data;
+    } catch (error) {
+      if (error.response) {
+        return rejectWithValue(
+          `Server responded with status: ${error.response.status}`
+        );
+      } else if (error.request) {
+        return rejectWithValue(
+          "The server did not respond. Please try again later."
+        );
+      } else {
+        return rejectWithValue(error.message);
+      }
+    }
+  }
+);
+
+const initialState = {
+  selectedEntry: null,
+  isLoading: false,
+  error: null,
+};
+
+const entrySelectedSlice = createSlice({
+  name: "entrySelected",
+  initialState,
+  reducers: {
+    resetSelectedEntry: (state) => {
+      state.selectedEntry = null;
+    },
+  },
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchEntryDetails.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(fetchEntryDetails.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.selectedEntry = action.payload;
+        state.error = null;
+      })
+      .addCase(fetchEntryDetails.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload;
+      });
+  },
+});
+
+export const { resetSelectedEntry } = entrySelectedSlice.actions;
+export default entrySelectedSlice.reducer;
 
 ```
 
@@ -3414,19 +4073,19 @@ import { configureStore } from "@reduxjs/toolkit";
 import blockchainInfoReducer from "./blockchainInfoSlice";
 import blockchainIntegrityReducer from "./blockchainIntegritySlice";
 import blocksReducer from "./blocksSlice";
-import latestBlocksReducer from "./blocksLatestSlice";
 import selectedBlockReducer from "./blockSelectedSlice";
-import blocksRangeReducer from "./blocksRangeSlice";
 import nodesReducer from "./nodesSlice";
+import entriesReducer from "./entriesSlice";
+import selectedEntryReducer from "./entrySelectedSlice";
 
 const store = configureStore({
   reducer: {
     blockchainInfo: blockchainInfoReducer,
     blockchainIntegrity: blockchainIntegrityReducer,
     blocks: blocksReducer,
-    latestBlocks: latestBlocksReducer,
     selectedBlock: selectedBlockReducer,
-    blocksRange: blocksRangeReducer,
+    entries: entriesReducer,
+    selectedEntry: selectedEntryReducer,
     nodes: nodesReducer,
   },
 });
