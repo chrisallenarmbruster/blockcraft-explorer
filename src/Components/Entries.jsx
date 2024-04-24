@@ -57,14 +57,23 @@ const Entries = () => {
       </Alert>
     );
 
+  const formatAddress = (address) => {
+    return address.length >= 11
+      ? `${address.slice(0, 6)}...${address.slice(-4)}`
+      : address;
+  };
+
   return (
-    <div>
+    <div className="mb-5">
       <h2 className="h3 mb-4">Entries</h2>
       <Table striped bordered hover>
         <thead>
           <tr>
             <th>ID</th>
             <th>Block Index</th>
+            <th>From</th>
+            <th>To</th>
+            <th>Amount</th>
             <th>Data</th>
           </tr>
         </thead>
@@ -85,6 +94,9 @@ const Entries = () => {
                   </Link>
                 )}
               </td>
+              <td title={entry.from}>{formatAddress(entry.from)}</td>
+              <td title={entry.to}>{formatAddress(entry.to)}</td>
+              <td>{entry.amount}</td>
               <td>{entry.data}</td>
             </tr>
           ))}

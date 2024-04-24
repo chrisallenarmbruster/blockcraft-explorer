@@ -68,7 +68,7 @@ const Blocks = () => {
   };
 
   return (
-    <div>
+    <div className="mb-5">
       <h2 className="h3 mb-4">Blocks</h2>
       <Table striped bordered hover>
         <thead>

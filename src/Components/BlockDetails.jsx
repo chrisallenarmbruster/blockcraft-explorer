@@ -59,6 +59,12 @@ const BlockDetails = () => {
     return date.toLocaleString();
   };
 
+  const formatAddress = (address) => {
+    return address.length >= 11
+      ? `${address.slice(0, 6)}...${address.slice(-4)}`
+      : address;
+  };
+
   return (
     <div>
       <h2 className="h3">Block Details for #{block && block.index}</h2>
@@ -98,6 +104,9 @@ const BlockDetails = () => {
                   <thead>
                     <tr>
                       <th>Entry ID</th>
+                      <th>From</th>
+                      <th>To</th>
+                      <th>Amount</th>
                       <th>Data</th>
                     </tr>
                   </thead>
@@ -109,6 +118,9 @@ const BlockDetails = () => {
                             {item.entryId}
                           </Link>
                         </td>
+                        <td title={item.from}>{formatAddress(item.from)}</td>
+                        <td title={item.to}>{formatAddress(item.to)}</td>
+                        <td>{item.amount}</td>
                         <td>{JSON.stringify(item.data)}</td>
                       </tr>
                     ))}
