@@ -64,7 +64,7 @@ const BlockDetails = () => {
       <h2 className="h3">Block Details for #{block && block.index}</h2>
 
       {block && (
-        <div>
+        <div className="mb-5">
           <Container>
             <p>Index: {block.index}</p>
             <p>
