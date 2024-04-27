@@ -2,30 +2,36 @@ import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { fetchEntries, resetError, resetEntries } from "../store/entriesSlice";
 import { Button, Alert, Spinner, Table } from "react-bootstrap";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 
 const Entries = () => {
   const { entries, meta, isLoading, error } = useSelector(
     (state) => state.entries
   );
   const dispatch = useDispatch();
+  const location = useLocation();
 
   const [currentPage, setCurrentPage] = useState(1);
 
+  const getQueryParams = () => new URLSearchParams(location.search);
+
   useEffect(() => {
+    const publicKey = getQueryParams().get("publicKey");
+
     dispatch(
       fetchEntries({
         scope: "all",
         sort: "desc",
         page: currentPage,
         pageLimit: 30,
+        publicKey: publicKey || undefined,
       })
     );
 
     return () => {
       dispatch(resetEntries());
     };
-  }, [dispatch, currentPage]);
+  }, [dispatch, currentPage, location.search]);
 
   const handlePrevPage = () => {
     if (currentPage > 1) {
@@ -58,6 +64,10 @@ const Entries = () => {
     );
 
   const formatAddress = (address) => {
+    if (!address) {
+      return "N/A";
+    }
+
     return address.length >= 11
       ? `${address.slice(0, 6)}...${address.slice(-4)}`
       : address;
@@ -65,7 +75,20 @@ const Entries = () => {
 
   return (
     <div className="mb-5">
-      <h2 className="h3 mb-4">Entries</h2>
+      <h2 className="h3 mb-4">
+        {meta.queriedPublicKey !== "N/A" ? (
+          <>
+            Entries Related to{" "}
+            <span title={meta.queriedPublicKey} className="me-5">
+              {formatAddress(meta.queriedPublicKey)}
+            </span>
+            <br></br>
+            <span className="h4">Amount Balance: {meta.netAmount}</span>
+          </>
+        ) : (
+          "Entries"
+        )}
+      </h2>
       <Table striped bordered hover>
         <thead>
           <tr>
@@ -94,9 +117,41 @@ const Entries = () => {
                   </Link>
                 )}
               </td>
-              <td title={entry.from}>{formatAddress(entry.from)}</td>
-              <td title={entry.to}>{formatAddress(entry.to)}</td>
-              <td>{entry.amount}</td>
+              <td
+                title={entry.from}
+                className={
+                  entry.from === meta.queriedPublicKey ? "fw-bold" : ""
+                }
+              >
+                {entry.from !== meta.queriedPublicKey ? (
+                  <Link to={`/entries?publicKey=${entry.from}`}>
+                    {formatAddress(entry.from)}
+                  </Link>
+                ) : (
+                  formatAddress(entry.from)
+                )}
+              </td>
+              <td
+                title={entry.to}
+                className={entry.to === meta.queriedPublicKey ? "fw-bold" : ""}
+              >
+                {entry.to !== meta.queriedPublicKey ? (
+                  <Link to={`/entries?publicKey=${entry.to}`}>
+                    {formatAddress(entry.to)}
+                  </Link>
+                ) : (
+                  formatAddress(entry.to)
+                )}
+              </td>
+              <td
+                className={`${
+                  entry.from === meta.queriedPublicKey ? "text-danger" : ""
+                } text-end`}
+              >
+                {entry.from === meta.queriedPublicKey
+                  ? -entry.amount
+                  : entry.amount}
+              </td>
               <td>{entry.data}</td>
             </tr>
           ))}

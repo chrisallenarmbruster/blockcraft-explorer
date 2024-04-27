@@ -62,8 +62,13 @@ const EntryDetails = () => {
                 </Link>
               )}
             </p>
-            <p>From: {entry.from}</p>
-            <p>To: {entry.to}</p>
+            <p>
+              From:{" "}
+              <Link to={`/entries?publicKey=${entry.from}`}>{entry.from}</Link>
+            </p>
+            <p>
+              To: <Link to={`/entries?publicKey=${entry.to}`}>{entry.to}</Link>
+            </p>
             <p>Type: {entry.type}</p>
             <p>Amount: {entry.amount}</p>
             <p>

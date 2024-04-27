@@ -79,6 +79,13 @@ const BlockDetails = () => {
             <p>Block Creator: {block.blockCreator}</p>
             <p>Hash: {block.hash}</p>
             <p>Previous Hash: {block.previousHash}</p>
+            <p>
+              Owner Address:{" "}
+              <Link to={`/entries?publicKey=${block.ownerAddress}`}>
+                {" "}
+                {block.ownerAddress}
+              </Link>
+            </p>
             {Object.keys(block)
               .filter(
                 (prop) =>
@@ -89,6 +96,7 @@ const BlockDetails = () => {
                     "blockCreator",
                     "hash",
                     "data",
+                    "ownerAddress",
                   ].includes(prop)
               )
               .map((key) => (
@@ -118,8 +126,16 @@ const BlockDetails = () => {
                             {item.entryId}
                           </Link>
                         </td>
-                        <td title={item.from}>{formatAddress(item.from)}</td>
-                        <td title={item.to}>{formatAddress(item.to)}</td>
+                        <td title={item.from}>
+                          <Link to={`/entries?publicKey=${item.from}`}>
+                            {formatAddress(item.from)}
+                          </Link>
+                        </td>
+                        <td title={item.from}>
+                          <Link to={`/entries?publicKey=${item.to}`}>
+                            {formatAddress(item.to)}
+                          </Link>
+                        </td>
                         <td>{item.amount}</td>
                         <td>{JSON.stringify(item.data)}</td>
                       </tr>
