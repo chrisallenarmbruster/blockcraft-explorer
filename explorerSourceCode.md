@@ -1,6 +1,5 @@
 # README.md
 
-```markdown
 # Blockcraft Explorer 🌐
 
 Welcome to the Blockcraft Explorer, my official React/Redux frontend for the Blockcraft blockchain package! This tool is designed to help you navigate and interact with a Blockcraft blockchain, providing insights into blocks, transactions, and the overall network state. 🚀
@@ -65,7 +64,6 @@ While the Blockcraft Explorer works out-of-the-box, you may wish to customize or
 
 For further guidance on customization or integration, please refer to the [official Blockcraft documentation](https://github.com/chrisallenarmbruster/blockcraft-explorer#readme) or reach out to the community for support. 🤝
 
-```
 
 # genSourceCode.js
 
@@ -123,7 +121,11 @@ async function appendFileContent(file, language) {
     const relativeFilePath = path.relative(__dirname, file);
     await fs.appendFile(
       outputFile,
-      `# ${relativeFilePath}\n\n\`\`\`${language}\n${data}\n\`\`\`\n\n`
+      `# ${relativeFilePath}\n\n${
+        language !== "markdown"
+          ? `\`\`\`${language}\n${data}\n\`\`\`\n\n`
+          : `${data}\n\n`
+      }`
     );
     console.log(`Appended contents of ${relativeFilePath} to ${outputFile}`);
   } catch (err) {
@@ -325,12 +327,18 @@ const BlockDetails = () => {
     return date.toLocaleString();
   };
 
+  const formatAddress = (address) => {
+    return address.length >= 11
+      ? `${address.slice(0, 6)}...${address.slice(-4)}`
+      : address;
+  };
+
   return (
     <div>
       <h2 className="h3">Block Details for #{block && block.index}</h2>
 
       {block && (
-        <div>
+        <div className="mb-5">
           <Container>
             <p>Index: {block.index}</p>
             <p>
@@ -339,6 +347,13 @@ const BlockDetails = () => {
             <p>Block Creator: {block.blockCreator}</p>
             <p>Hash: {block.hash}</p>
             <p>Previous Hash: {block.previousHash}</p>
+            <p>
+              Owner Address:{" "}
+              <Link to={`/entries?publicKey=${block.ownerAddress}`}>
+                {" "}
+                {block.ownerAddress}
+              </Link>
+            </p>
             {Object.keys(block)
               .filter(
                 (prop) =>
@@ -349,6 +364,7 @@ const BlockDetails = () => {
                     "blockCreator",
                     "hash",
                     "data",
+                    "ownerAddress",
                   ].includes(prop)
               )
               .map((key) => (
@@ -364,6 +380,9 @@ const BlockDetails = () => {
                   <thead>
                     <tr>
                       <th>Entry ID</th>
+                      <th>From</th>
+                      <th>To</th>
+                      <th>Amount</th>
                       <th>Data</th>
                     </tr>
                   </thead>
@@ -375,6 +394,17 @@ const BlockDetails = () => {
                             {item.entryId}
                           </Link>
                         </td>
+                        <td title={item.from}>
+                          <Link to={`/entries?publicKey=${item.from}`}>
+                            {formatAddress(item.from)}
+                          </Link>
+                        </td>
+                        <td title={item.from}>
+                          <Link to={`/entries?publicKey=${item.to}`}>
+                            {formatAddress(item.to)}
+                          </Link>
+                        </td>
+                        <td>{item.amount}</td>
                         <td>{JSON.stringify(item.data)}</td>
                       </tr>
                     ))}
@@ -741,7 +771,7 @@ const Blocks = () => {
   };
 
   return (
-    <div>
+    <div className="mb-5">
       <h2 className="h3 mb-4">Blocks</h2>
       <Table striped bordered hover>
         <thead>
@@ -1130,30 +1160,36 @@ import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { fetchEntries, resetError, resetEntries } from "../store/entriesSlice";
 import { Button, Alert, Spinner, Table } from "react-bootstrap";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 
 const Entries = () => {
   const { entries, meta, isLoading, error } = useSelector(
     (state) => state.entries
   );
   const dispatch = useDispatch();
+  const location = useLocation();
 
   const [currentPage, setCurrentPage] = useState(1);
 
+  const getQueryParams = () => new URLSearchParams(location.search);
+
   useEffect(() => {
+    const publicKey = getQueryParams().get("publicKey");
+
     dispatch(
       fetchEntries({
         scope: "all",
         sort: "desc",
         page: currentPage,
         pageLimit: 30,
+        publicKey: publicKey || undefined,
       })
     );
 
     return () => {
       dispatch(resetEntries());
     };
-  }, [dispatch, currentPage]);
+  }, [dispatch, currentPage, location.search]);
 
   const handlePrevPage = () => {
     if (currentPage > 1) {
@@ -1185,14 +1221,40 @@ const Entries = () => {
       </Alert>
     );
 
+  const formatAddress = (address) => {
+    if (!address) {
+      return "N/A";
+    }
+
+    return address.length >= 11
+      ? `${address.slice(0, 6)}...${address.slice(-4)}`
+      : address;
+  };
+
   return (
-    <div>
-      <h2 className="h3 mb-4">Entries</h2>
+    <div className="mb-5">
+      <h2 className="h3 mb-4">
+        {meta.queriedPublicKey !== "N/A" ? (
+          <>
+            Entries Related to{" "}
+            <span title={meta.queriedPublicKey} className="me-5">
+              {formatAddress(meta.queriedPublicKey)}
+            </span>
+            <br></br>
+            <span className="h4">Amount Balance: {meta.netAmount}</span>
+          </>
+        ) : (
+          "Entries"
+        )}
+      </h2>
       <Table striped bordered hover>
         <thead>
           <tr>
             <th>ID</th>
             <th>Block Index</th>
+            <th>From</th>
+            <th>To</th>
+            <th>Amount</th>
             <th>Data</th>
           </tr>
         </thead>
@@ -1212,6 +1274,41 @@ const Entries = () => {
                     {entry.blockIndex}
                   </Link>
                 )}
+              </td>
+              <td
+                title={entry.from}
+                className={
+                  entry.from === meta.queriedPublicKey ? "fw-bold" : ""
+                }
+              >
+                {entry.from !== meta.queriedPublicKey ? (
+                  <Link to={`/entries?publicKey=${entry.from}`}>
+                    {formatAddress(entry.from)}
+                  </Link>
+                ) : (
+                  formatAddress(entry.from)
+                )}
+              </td>
+              <td
+                title={entry.to}
+                className={entry.to === meta.queriedPublicKey ? "fw-bold" : ""}
+              >
+                {entry.to !== meta.queriedPublicKey ? (
+                  <Link to={`/entries?publicKey=${entry.to}`}>
+                    {formatAddress(entry.to)}
+                  </Link>
+                ) : (
+                  formatAddress(entry.to)
+                )}
+              </td>
+              <td
+                className={`${
+                  entry.from === meta.queriedPublicKey ? "text-danger" : ""
+                } text-end`}
+              >
+                {entry.from === meta.queriedPublicKey
+                  ? -entry.amount
+                  : entry.amount}
               </td>
               <td>{entry.data}</td>
             </tr>
@@ -1293,6 +1390,11 @@ const EntryDetails = () => {
     }
   }
 
+  const formatDate = (timestamp) => {
+    const date = new Date(timestamp);
+    return date.toLocaleString();
+  };
+
   return (
     <div>
       <h2 className="h3 mb-3">Entry Details</h2>
@@ -1311,16 +1413,33 @@ const EntryDetails = () => {
                 </Link>
               )}
             </p>
-            <p>From: {entry.from}</p>
-            <p>To: {entry.to}</p>
+            <p>
+              From:{" "}
+              <Link to={`/entries?publicKey=${entry.from}`}>{entry.from}</Link>
+            </p>
+            <p>
+              To: <Link to={`/entries?publicKey=${entry.to}`}>{entry.to}</Link>
+            </p>
             <p>Type: {entry.type}</p>
             <p>Amount: {entry.amount}</p>
+            <p>
+              Initiation Timestamp: {entry.initiationTimestamp}:{" "}
+              {formatDate(entry.initiationTimestamp)}
+            </p>
             <p>
               Data:<br></br>
               {entry.data}
             </p>
             <p>Hash: {entry.hash}</p>
             <p>Signature: {entry.signature}</p>
+            <p>
+              Integrity:{" "}
+              <span className={entry.isValid ? "text-success" : "text-danger"}>
+                {entry.isValid
+                  ? "Hash and Signature pass integrity checks"
+                  : "Hash and/or Signature fail integrity checks"}
+              </span>
+            </p>
           </Container>
         </div>
       )}
@@ -1954,10 +2073,13 @@ const initialState = {
 
 export const fetchEntries = createAsyncThunk(
   "entries/fetchEntries",
-  async ({ scope, sort, page, pageLimit } = {}, { rejectWithValue }) => {
+  async (
+    { scope, sort, page, pageLimit, publicKey } = {},
+    { rejectWithValue }
+  ) => {
     try {
       const response = await axios.get("/api/entries", {
-        params: { scope, sort, page, pageLimit },
+        params: { scope, sort, page, pageLimit, publicKey },
       });
       return response.data;
     } catch (error) {
@@ -2310,12 +2432,18 @@ const BlockDetails = () => {
     return date.toLocaleString();
   };
 
+  const formatAddress = (address) => {
+    return address.length >= 11
+      ? `${address.slice(0, 6)}...${address.slice(-4)}`
+      : address;
+  };
+
   return (
     <div>
       <h2 className="h3">Block Details for #{block && block.index}</h2>
 
       {block && (
-        <div>
+        <div className="mb-5">
           <Container>
             <p>Index: {block.index}</p>
             <p>
@@ -2324,6 +2452,13 @@ const BlockDetails = () => {
             <p>Block Creator: {block.blockCreator}</p>
             <p>Hash: {block.hash}</p>
             <p>Previous Hash: {block.previousHash}</p>
+            <p>
+              Owner Address:{" "}
+              <Link to={`/entries?publicKey=${block.ownerAddress}`}>
+                {" "}
+                {block.ownerAddress}
+              </Link>
+            </p>
             {Object.keys(block)
               .filter(
                 (prop) =>
@@ -2334,6 +2469,7 @@ const BlockDetails = () => {
                     "blockCreator",
                     "hash",
                     "data",
+                    "ownerAddress",
                   ].includes(prop)
               )
               .map((key) => (
@@ -2349,6 +2485,9 @@ const BlockDetails = () => {
                   <thead>
                     <tr>
                       <th>Entry ID</th>
+                      <th>From</th>
+                      <th>To</th>
+                      <th>Amount</th>
                       <th>Data</th>
                     </tr>
                   </thead>
@@ -2360,6 +2499,17 @@ const BlockDetails = () => {
                             {item.entryId}
                           </Link>
                         </td>
+                        <td title={item.from}>
+                          <Link to={`/entries?publicKey=${item.from}`}>
+                            {formatAddress(item.from)}
+                          </Link>
+                        </td>
+                        <td title={item.from}>
+                          <Link to={`/entries?publicKey=${item.to}`}>
+                            {formatAddress(item.to)}
+                          </Link>
+                        </td>
+                        <td>{item.amount}</td>
                         <td>{JSON.stringify(item.data)}</td>
                       </tr>
                     ))}
@@ -2726,7 +2876,7 @@ const Blocks = () => {
   };
 
   return (
-    <div>
+    <div className="mb-5">
       <h2 className="h3 mb-4">Blocks</h2>
       <Table striped bordered hover>
         <thead>
@@ -3115,30 +3265,36 @@ import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { fetchEntries, resetError, resetEntries } from "../store/entriesSlice";
 import { Button, Alert, Spinner, Table } from "react-bootstrap";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 
 const Entries = () => {
   const { entries, meta, isLoading, error } = useSelector(
     (state) => state.entries
   );
   const dispatch = useDispatch();
+  const location = useLocation();
 
   const [currentPage, setCurrentPage] = useState(1);
 
+  const getQueryParams = () => new URLSearchParams(location.search);
+
   useEffect(() => {
+    const publicKey = getQueryParams().get("publicKey");
+
     dispatch(
       fetchEntries({
         scope: "all",
         sort: "desc",
         page: currentPage,
         pageLimit: 30,
+        publicKey: publicKey || undefined,
       })
     );
 
     return () => {
       dispatch(resetEntries());
     };
-  }, [dispatch, currentPage]);
+  }, [dispatch, currentPage, location.search]);
 
   const handlePrevPage = () => {
     if (currentPage > 1) {
@@ -3170,14 +3326,40 @@ const Entries = () => {
       </Alert>
     );
 
+  const formatAddress = (address) => {
+    if (!address) {
+      return "N/A";
+    }
+
+    return address.length >= 11
+      ? `${address.slice(0, 6)}...${address.slice(-4)}`
+      : address;
+  };
+
   return (
-    <div>
-      <h2 className="h3 mb-4">Entries</h2>
+    <div className="mb-5">
+      <h2 className="h3 mb-4">
+        {meta.queriedPublicKey !== "N/A" ? (
+          <>
+            Entries Related to{" "}
+            <span title={meta.queriedPublicKey} className="me-5">
+              {formatAddress(meta.queriedPublicKey)}
+            </span>
+            <br></br>
+            <span className="h4">Amount Balance: {meta.netAmount}</span>
+          </>
+        ) : (
+          "Entries"
+        )}
+      </h2>
       <Table striped bordered hover>
         <thead>
           <tr>
             <th>ID</th>
             <th>Block Index</th>
+            <th>From</th>
+            <th>To</th>
+            <th>Amount</th>
             <th>Data</th>
           </tr>
         </thead>
@@ -3197,6 +3379,41 @@ const Entries = () => {
                     {entry.blockIndex}
                   </Link>
                 )}
+              </td>
+              <td
+                title={entry.from}
+                className={
+                  entry.from === meta.queriedPublicKey ? "fw-bold" : ""
+                }
+              >
+                {entry.from !== meta.queriedPublicKey ? (
+                  <Link to={`/entries?publicKey=${entry.from}`}>
+                    {formatAddress(entry.from)}
+                  </Link>
+                ) : (
+                  formatAddress(entry.from)
+                )}
+              </td>
+              <td
+                title={entry.to}
+                className={entry.to === meta.queriedPublicKey ? "fw-bold" : ""}
+              >
+                {entry.to !== meta.queriedPublicKey ? (
+                  <Link to={`/entries?publicKey=${entry.to}`}>
+                    {formatAddress(entry.to)}
+                  </Link>
+                ) : (
+                  formatAddress(entry.to)
+                )}
+              </td>
+              <td
+                className={`${
+                  entry.from === meta.queriedPublicKey ? "text-danger" : ""
+                } text-end`}
+              >
+                {entry.from === meta.queriedPublicKey
+                  ? -entry.amount
+                  : entry.amount}
               </td>
               <td>{entry.data}</td>
             </tr>
@@ -3278,6 +3495,11 @@ const EntryDetails = () => {
     }
   }
 
+  const formatDate = (timestamp) => {
+    const date = new Date(timestamp);
+    return date.toLocaleString();
+  };
+
   return (
     <div>
       <h2 className="h3 mb-3">Entry Details</h2>
@@ -3296,16 +3518,33 @@ const EntryDetails = () => {
                 </Link>
               )}
             </p>
-            <p>From: {entry.from}</p>
-            <p>To: {entry.to}</p>
+            <p>
+              From:{" "}
+              <Link to={`/entries?publicKey=${entry.from}`}>{entry.from}</Link>
+            </p>
+            <p>
+              To: <Link to={`/entries?publicKey=${entry.to}`}>{entry.to}</Link>
+            </p>
             <p>Type: {entry.type}</p>
             <p>Amount: {entry.amount}</p>
+            <p>
+              Initiation Timestamp: {entry.initiationTimestamp}:{" "}
+              {formatDate(entry.initiationTimestamp)}
+            </p>
             <p>
               Data:<br></br>
               {entry.data}
             </p>
             <p>Hash: {entry.hash}</p>
             <p>Signature: {entry.signature}</p>
+            <p>
+              Integrity:{" "}
+              <span className={entry.isValid ? "text-success" : "text-danger"}>
+                {entry.isValid
+                  ? "Hash and Signature pass integrity checks"
+                  : "Hash and/or Signature fail integrity checks"}
+              </span>
+            </p>
           </Container>
         </div>
       )}
@@ -3939,10 +4178,13 @@ const initialState = {
 
 export const fetchEntries = createAsyncThunk(
   "entries/fetchEntries",
-  async ({ scope, sort, page, pageLimit } = {}, { rejectWithValue }) => {
+  async (
+    { scope, sort, page, pageLimit, publicKey } = {},
+    { rejectWithValue }
+  ) => {
     try {
       const response = await axios.get("/api/entries", {
-        params: { scope, sort, page, pageLimit },
+        params: { scope, sort, page, pageLimit, publicKey },
       });
       return response.data;
     } catch (error) {

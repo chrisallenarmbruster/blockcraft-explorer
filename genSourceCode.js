@@ -51,7 +51,11 @@ async function appendFileContent(file, language) {
     const relativeFilePath = path.relative(__dirname, file);
     await fs.appendFile(
       outputFile,
-      `# ${relativeFilePath}\n\n\`\`\`${language}\n${data}\n\`\`\`\n\n`
+      `# ${relativeFilePath}\n\n${
+        language !== "markdown"
+          ? `\`\`\`${language}\n${data}\n\`\`\`\n\n`
+          : `${data}\n\n`
+      }`
     );
     console.log(`Appended contents of ${relativeFilePath} to ${outputFile}`);
   } catch (err) {
