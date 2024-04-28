@@ -57,17 +57,31 @@ const EntryDetails = () => {
               {entry.blockIndex === "pending" ? (
                 "pending"
               ) : (
-                <Link to={`/blocks/${entry.blockIndex}`}>
+                <Link
+                  to={`/blocks/${entry.blockIndex}`}
+                  className={`link-info`}
+                >
                   {entry.blockIndex}
                 </Link>
               )}
             </p>
             <p>
               From:{" "}
-              <Link to={`/entries?publicKey=${entry.from}`}>{entry.from}</Link>
+              <Link
+                to={`/entries?publicKey=${entry.from}`}
+                className={`link-info`}
+              >
+                {entry.from}
+              </Link>
             </p>
             <p>
-              To: <Link to={`/entries?publicKey=${entry.to}`}>{entry.to}</Link>
+              To:{" "}
+              <Link
+                to={`/entries?publicKey=${entry.to}`}
+                className={`link-info`}
+              >
+                {entry.to}
+              </Link>
             </p>
             <p>Type: {entry.type}</p>
             <p>Amount: {entry.amount}</p>

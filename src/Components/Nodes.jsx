@@ -35,8 +35,8 @@ const Nodes = () => {
             >
               <Card>
                 <Card.Header
-                  className={`bg-info ${
-                    index === 0 ? "bg-opacity-50" : "bg-opacity-25"
+                  className={`${
+                    index === 0 ? "bg-info-highlight" : "bg-info-muted "
                   } border-info`}
                 >
                   <Card.Title>

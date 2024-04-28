@@ -12,6 +12,7 @@ import { BrowserRouter as Router } from "react-router-dom";
 import store from "./store";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
+import "./override.css";
 
 const container = document.getElementById("root");
 const root = createRoot(container);

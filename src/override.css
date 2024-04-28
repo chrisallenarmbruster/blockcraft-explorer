@@ -1,0 +1,103 @@
+:root {
+  --pink: 330, 64%, 58%; /* HSL values for red */
+  --red: 0, 100%, 50%; /* HSL values for red */
+  --blue: 217, 98%, 50%; /* HSL values for #0d6efd */
+  --orange: 30, 100%, 50%; /* HSL values for orange */
+  --green: 120, 61%, 34%; /* HSL values for green */
+  --purple: 270, 50%, 50%; /* HSL values for purple */
+  --main-color: var(--purple);
+}
+
+.text-info {
+  color: hsl(var(--main-color)) !important;
+}
+
+.link-info {
+  color: hsl(var(--main-color)) !important;
+  text-decoration: none !important;
+  padding: 0.2 rem !important;
+}
+
+.link-info:hover {
+  color: hsl(var(--main-color)) !important;
+  text-decoration: underline !important;
+  text-underline-offset: 0.2em;
+}
+
+.link-info:focus {
+  color: hsl(var(--main-color)) !important;
+  text-decoration: underline !important;
+  text-underline-offset: 0.2em;
+  border-color: hsl(var(--main-color)) !important;
+  outline-color: hsl(var(--main-color)) !important;
+}
+
+.link-info:focus-visible {
+  color: hsl(var(--main-color)) !important;
+  text-decoration: underline !important;
+  text-underline-offset: 0.2em;
+  border-color: hsl(var(--main-color)) !important;
+  outline-color: hsl(var(--main-color)) !important;
+}
+
+.bg-info-highlight {
+  background-color: hsla(var(--main-color), 1) !important;
+}
+
+.bg-info-muted {
+  background-color: hsla(var(--main-color), 0.25) !important;
+}
+
+.border-info {
+  border-color: hsl(var(--main-color)) !important;
+}
+
+.horizontal-line-info {
+  border-top: 1px solid hsl(var(--main-color)) !important;
+}
+
+.bg-info-solid {
+  background-color: hsl(var(--main-color)) !important;
+}
+
+.bg-info {
+  background-color: hsl(var(--main-color), 0.15) !important;
+}
+
+.btn-primary {
+  background-color: hsl(var(--main-color)) !important;
+  border-color: hsl(var(--main-color)) !important;
+}
+
+.btn-outline-info {
+  color: hsl(var(--main-color)) !important;
+  border-color: hsl(var(--main-color)) !important;
+}
+
+.btn-outline-info:hover {
+  background-color: hsl(var(--main-color), 0.25) !important;
+  border-color: hsl(var(--main-color)) !important;
+}
+
+.btn-outline-info:focus {
+  background-color: hsl(var(--main-color), 0.25) !important;
+  border-color: hsl(var(--main-color)) !important;
+  outline-color: hsl(var(--main-color)) !important;
+}
+
+.btn-outline-info:focus-visible {
+  background-color: hsl(var(--main-color), 0.25) !important;
+  border-color: hsl(var(--main-color)) !important;
+  outline-color: hsl(var(--main-color)) !important;
+}
+
+.link-light {
+  color: white !important;
+  text-decoration: none !important;
+}
+
+.link-light:hover {
+  color: white !important;
+  text-decoration: underline !important;
+  text-underline-offset: 0.3em;
+}

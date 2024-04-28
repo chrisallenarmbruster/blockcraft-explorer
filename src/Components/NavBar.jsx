@@ -80,7 +80,7 @@ const NavBar = () => {
                 if (event.key === "Enter") handleSubmit(event);
               }}
             />
-            <Button variant="outline-success" type="submit">
+            <Button variant="outline-info" type="submit">
               <BiSearchAlt2 className="text-info" size={24} />
             </Button>
           </Form>

@@ -83,7 +83,9 @@ const Blocks = () => {
           {blocks.map((block, index) => (
             <tr key={index} onClick={() => handleRowClick(block.index)}>
               <td>
-                <Link to={`/blocks/${block.index}`}>{block.index}</Link>
+                <Link to={`/blocks/${block.index}`} className={`link-info`}>
+                  {block.index}
+                </Link>
               </td>
               <td>{block.blockCreator}</td>
               <td>

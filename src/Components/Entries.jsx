@@ -105,14 +105,19 @@ const Entries = () => {
             <tr key={index}>
               <td>
                 {" "}
-                <Link to={`/entries/${entry.entryId}`}>{entry.entryId}</Link>
+                <Link to={`/entries/${entry.entryId}`} className={`link-info`}>
+                  {entry.entryId}
+                </Link>
               </td>
 
               <td>
                 {entry.blockIndex === "pending" ? (
                   "pending"
                 ) : (
-                  <Link to={`/blocks/${entry.blockIndex}`}>
+                  <Link
+                    to={`/blocks/${entry.blockIndex}`}
+                    className={`link-info`}
+                  >
                     {entry.blockIndex}
                   </Link>
                 )}
@@ -124,7 +129,10 @@ const Entries = () => {
                 }
               >
                 {entry.from !== meta.queriedPublicKey ? (
-                  <Link to={`/entries?publicKey=${entry.from}`}>
+                  <Link
+                    to={`/entries?publicKey=${entry.from}`}
+                    className={`link-info`}
+                  >
                     {formatAddress(entry.from)}
                   </Link>
                 ) : (
@@ -136,7 +144,10 @@ const Entries = () => {
                 className={entry.to === meta.queriedPublicKey ? "fw-bold" : ""}
               >
                 {entry.to !== meta.queriedPublicKey ? (
-                  <Link to={`/entries?publicKey=${entry.to}`}>
+                  <Link
+                    to={`/entries?publicKey=${entry.to}`}
+                    className={`link-info`}
+                  >
                     {formatAddress(entry.to)}
                   </Link>
                 ) : (
@@ -145,7 +156,7 @@ const Entries = () => {
               </td>
               <td
                 className={`${
-                  entry.from === meta.queriedPublicKey ? "text-danger" : ""
+                  entry.from === meta.queriedPublicKey ? "" : ""
                 } text-end`}
               >
                 {entry.from === meta.queriedPublicKey

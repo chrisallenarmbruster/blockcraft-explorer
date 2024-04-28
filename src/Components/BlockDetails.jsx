@@ -81,7 +81,10 @@ const BlockDetails = () => {
             <p>Previous Hash: {block.previousHash}</p>
             <p>
               Owner Address:{" "}
-              <Link to={`/entries?publicKey=${block.ownerAddress}`}>
+              <Link
+                to={`/entries?publicKey=${block.ownerAddress}`}
+                className={`link-info`}
+              >
                 {" "}
                 {block.ownerAddress}
               </Link>
@@ -122,17 +125,26 @@ const BlockDetails = () => {
                     {block.data.map((item, index) => (
                       <tr key={index}>
                         <td>
-                          <Link to={`/entries/${item.entryId}`}>
+                          <Link
+                            to={`/entries/${item.entryId}`}
+                            className={`link-info`}
+                          >
                             {item.entryId}
                           </Link>
                         </td>
                         <td title={item.from}>
-                          <Link to={`/entries?publicKey=${item.from}`}>
+                          <Link
+                            to={`/entries?publicKey=${item.from}`}
+                            className={`link-info`}
+                          >
                             {formatAddress(item.from)}
                           </Link>
                         </td>
                         <td title={item.from}>
-                          <Link to={`/entries?publicKey=${item.to}`}>
+                          <Link
+                            to={`/entries?publicKey=${item.to}`}
+                            className={`link-info`}
+                          >
                             {formatAddress(item.to)}
                           </Link>
                         </td>

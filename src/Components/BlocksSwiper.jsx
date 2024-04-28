@@ -128,21 +128,23 @@ const BlocksSwiper = ({
         {blocks.map((block, index) => (
           <React.Fragment key={block.index}>
             {index !== 0 && (
-              <div className="bg-black">
+              <div className="bg-info-solid">
                 <hr className="horizontal-line my-0"></hr>
               </div>
             )}
             <Card
               className={`miniCard border-2 rounded-3 ${
                 index === blockArrayIndex
-                  ? "bg-info bg-opacity-50 border-info"
-                  : "bg-info bg-opacity-25 border-info"
+                  ? "bg-info-highlight border-info-highlight"
+                  : "bg-info-muted border-info"
               } `}
             >
               <Card.Body className="d-flex align-items-center justify-content-center">
                 <Link
                   to={`/blocks/${block.index}`}
-                  className="link-offset-1 link-offset-1-hover link-underline link-underline-opacity-0 link-underline-opacity-75-hover"
+                  className={` ${
+                    index === blockArrayIndex ? "link-light" : "link-info"
+                  }`}
                 >
                   <div className="fs-6 no-select ">#{block.index}</div>
                 </Link>

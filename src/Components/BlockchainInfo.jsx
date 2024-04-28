@@ -62,7 +62,7 @@ const BlockchainInfo = () => {
               xs={12}
               sm={6}
               md={4}
-              lg={2}
+              lg={3}
               className="d-flex align-items-center"
             >
               <span className="text-nowrap">
@@ -76,7 +76,7 @@ const BlockchainInfo = () => {
               xs={12}
               sm={6}
               md={4}
-              lg={2}
+              lg={3}
               className="d-flex align-items-center"
             >
               <span className="text-nowrap">
@@ -90,7 +90,7 @@ const BlockchainInfo = () => {
               xs={12}
               sm={6}
               md={4}
-              lg={2}
+              lg={3}
               className="d-flex align-items-center"
             >
               <span className="d-flex align-items-center text-nowrap">
@@ -107,7 +107,7 @@ const BlockchainInfo = () => {
               xs={12}
               sm={6}
               md={4}
-              lg={2}
+              lg={3}
               className="d-flex align-items-center"
             >
               <span className="text-nowrap">
@@ -121,7 +121,7 @@ const BlockchainInfo = () => {
               xs={12}
               sm={6}
               md={4}
-              lg={2}
+              lg={3}
               className="d-flex align-items-center"
             >
               <span className="text-nowrap">
@@ -135,7 +135,7 @@ const BlockchainInfo = () => {
               xs={12}
               sm={6}
               md={4}
-              lg={2}
+              lg={3}
               className="d-flex align-items-center"
             >
               <span className="text-nowrap">
