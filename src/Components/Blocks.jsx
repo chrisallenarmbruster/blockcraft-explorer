@@ -3,6 +3,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { fetchBlocks, resetBlocks } from "../store/blocksSlice";
 import { Button, Alert, Spinner, Table } from "react-bootstrap";
 import { Link, useNavigate } from "react-router-dom";
+import { BsCopy } from "react-icons/bs";
 
 const Blocks = () => {
   const { blocks, meta, isLoading, error } = useSelector(
@@ -67,10 +68,18 @@ const Blocks = () => {
     navigate(`/blocks/${blockIndex}`);
   };
 
+  const copyToClipboard = async (text) => {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (err) {
+      console.log("Failed to copy: ", err);
+    }
+  };
+
   return (
     <div className="mb-5">
       <h2 className="h3 mb-4">Blocks</h2>
-      <Table striped bordered hover>
+      <Table striped bordered hover className="font-monospace">
         <thead>
           <tr>
             <th>Block Index</th>
@@ -95,6 +104,18 @@ const Blocks = () => {
               </td>
               <td title={`Hash: ${block.hash}`}>
                 {block.hash.slice(0, 5)}...{block.hash.slice(-5)}
+                <Button
+                  variant="link"
+                  className="link-info"
+                  title="Copy to clipboard."
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    copyToClipboard(block.hash);
+                    event.currentTarget.blur();
+                  }}
+                >
+                  <BsCopy />
+                </Button>
               </td>
             </tr>
           ))}

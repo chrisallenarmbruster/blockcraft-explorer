@@ -3,6 +3,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { fetchEntries, resetError, resetEntries } from "../store/entriesSlice";
 import { Button, Alert, Spinner, Table } from "react-bootstrap";
 import { Link, useLocation } from "react-router-dom";
+import { BsCopy } from "react-icons/bs";
 
 const Entries = () => {
   const { entries, meta, isLoading, error } = useSelector(
@@ -52,16 +53,19 @@ const Entries = () => {
       </Spinner>
     );
 
-  if (error)
-    return (
-      <Alert
-        variant="danger"
-        onClose={() => dispatch(resetError())}
-        dismissible
-      >
-        {error}
-      </Alert>
-    );
+  if (error) {
+    const publicKey = getQueryParams().get("publicKey");
+    if (publicKey && error === "Server responded with status: 404") {
+      return (
+        <p>
+          No entries related to <span className="text-info">{publicKey}</span>{" "}
+          could be found in the chain.
+        </p>
+      );
+    } else {
+      return <p>Error: {error}</p>;
+    }
+  }
 
   const formatAddress = (address) => {
     if (!address) {
@@ -71,6 +75,14 @@ const Entries = () => {
     return address.length >= 11
       ? `${address.slice(0, 6)}...${address.slice(-4)}`
       : address;
+  };
+
+  const copyToClipboard = async (text) => {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (err) {
+      console.log("Failed to copy: ", err);
+    }
   };
 
   return (
@@ -84,12 +96,27 @@ const Entries = () => {
             </span>
             <br></br>
             <span className="h4">Amount Balance: {meta.netAmount}</span>
+            <p className="h6 mt-3">
+              Full Key:{" "}
+              <span className="font-monospace">{meta.queriedPublicKey}</span>
+              <Button
+                variant="link"
+                className="link-info"
+                title="Copy to clipboard."
+                onClick={(event) => {
+                  copyToClipboard(meta.queriedPublicKey);
+                  event.currentTarget.blur();
+                }}
+              >
+                <BsCopy />
+              </Button>
+            </p>
           </>
         ) : (
           "Entries"
         )}
       </h2>
-      <Table striped bordered hover>
+      <Table striped bordered hover className="font-monospace">
         <thead>
           <tr>
             <th>ID</th>
@@ -105,9 +132,24 @@ const Entries = () => {
             <tr key={index}>
               <td>
                 {" "}
-                <Link to={`/entries/${entry.entryId}`} className={`link-info`}>
-                  {entry.entryId}
+                <Link
+                  to={`/entries/${entry.entryId}`}
+                  className={`link-info`}
+                  title={entry.entryId}
+                >
+                  {formatAddress(entry.entryId)}
                 </Link>
+                <Button
+                  variant="link"
+                  className="link-info"
+                  title="Copy to clipboard."
+                  onClick={(event) => {
+                    copyToClipboard(entry.entryId);
+                    event.currentTarget.blur();
+                  }}
+                >
+                  <BsCopy />
+                </Button>
               </td>
 
               <td>
@@ -138,6 +180,17 @@ const Entries = () => {
                 ) : (
                   formatAddress(entry.from)
                 )}
+                <Button
+                  variant="link"
+                  className="link-info"
+                  title="Copy to clipboard."
+                  onClick={(event) => {
+                    copyToClipboard(entry.from);
+                    event.currentTarget.blur();
+                  }}
+                >
+                  <BsCopy />
+                </Button>
               </td>
               <td
                 title={entry.to}
@@ -153,6 +206,17 @@ const Entries = () => {
                 ) : (
                   formatAddress(entry.to)
                 )}
+                <Button
+                  variant="link"
+                  className="link-info"
+                  title="Copy to clipboard."
+                  onClick={(event) => {
+                    copyToClipboard(entry.to);
+                    event.currentTarget.blur();
+                  }}
+                >
+                  <BsCopy />
+                </Button>
               </td>
               <td
                 className={`${

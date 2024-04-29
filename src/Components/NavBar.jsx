@@ -31,6 +31,8 @@ const NavBar = () => {
     } else if (/^[a-fA-F0-9]{64}$/.test(searchTerm)) {
       console.log("searchTerm", searchTerm);
       navigate(`/blocks/${encodeURIComponent(searchTerm)}`);
+    } else if (/^(02|03)[a-fA-F0-9]{64}$/.test(searchTerm)) {
+      navigate(`/entries?publicKey=${encodeURIComponent(searchTerm)}`);
     } else if (/^[0-9A-Za-z_-]{21}$/.test(searchTerm)) {
       navigate(`/entries/${encodeURIComponent(searchTerm)}`);
     } else {

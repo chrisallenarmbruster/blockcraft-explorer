@@ -5,7 +5,8 @@ import {
   fetchEntryDetails,
   resetSelectedEntry,
 } from "../store/entrySelectedSlice";
-import { Container, ListGroup, Table } from "react-bootstrap";
+import { Container, Button } from "react-bootstrap";
+import { BsCopy } from "react-icons/bs";
 
 const EntryDetails = () => {
   const { entryIdentifier } = useParams();
@@ -44,14 +45,35 @@ const EntryDetails = () => {
     return date.toLocaleString();
   };
 
+  const copyToClipboard = async (text) => {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (err) {
+      console.log("Failed to copy: ", err);
+    }
+  };
+
   return (
     <div>
       <h2 className="h3 mb-3">Entry Details</h2>
 
       {entry && (
         <div>
-          <Container>
-            <p>Entry ID: {entry.entryId}</p>
+          <Container className="font-monospace text-break">
+            <p>
+              Entry ID: {entry.entryId}
+              <Button
+                variant="link"
+                className="link-info"
+                title="Copy to clipboard."
+                onClick={(event) => {
+                  copyToClipboard(entry.entryId);
+                  event.currentTarget.blur();
+                }}
+              >
+                <BsCopy />
+              </Button>
+            </p>
             <p>
               Block Index:{" "}
               {entry.blockIndex === "pending" ? (
@@ -73,6 +95,17 @@ const EntryDetails = () => {
               >
                 {entry.from}
               </Link>
+              <Button
+                variant="link"
+                className="link-info"
+                title="Copy to clipboard."
+                onClick={(event) => {
+                  copyToClipboard(entry.from);
+                  event.currentTarget.blur();
+                }}
+              >
+                <BsCopy />
+              </Button>
             </p>
             <p>
               To:{" "}
@@ -82,6 +115,17 @@ const EntryDetails = () => {
               >
                 {entry.to}
               </Link>
+              <Button
+                variant="link"
+                className="link-info"
+                title="Copy to clipboard."
+                onClick={(event) => {
+                  copyToClipboard(entry.to);
+                  event.currentTarget.blur();
+                }}
+              >
+                <BsCopy />
+              </Button>
             </p>
             <p>Type: {entry.type}</p>
             <p>Amount: {entry.amount}</p>
@@ -93,8 +137,37 @@ const EntryDetails = () => {
               Data:<br></br>
               {entry.data}
             </p>
-            <p>Hash: {entry.hash}</p>
-            <p>Signature: {entry.signature}</p>
+            <p>
+              Hash: {entry.hash}
+              <Button
+                variant="link"
+                className="link-info"
+                title="Copy to clipboard."
+                onClick={(event) => {
+                  copyToClipboard(entry.hash);
+                  event.currentTarget.blur();
+                }}
+              >
+                <BsCopy />
+              </Button>
+            </p>
+            <p className="text-wrap">
+              Signature:{" "}
+              <div className="text-wrap text-break">
+                {entry.signature}
+                <Button
+                  variant="link"
+                  className="link-info"
+                  title="Copy to clipboard."
+                  onClick={(event) => {
+                    copyToClipboard(entry.signature);
+                    event.currentTarget.blur();
+                  }}
+                >
+                  <BsCopy />
+                </Button>
+              </div>
+            </p>
             <p>
               Integrity:{" "}
               <span className={entry.isValid ? "text-success" : "text-danger"}>

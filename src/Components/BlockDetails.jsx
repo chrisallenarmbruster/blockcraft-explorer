@@ -21,7 +21,8 @@ import {
   fetchBlockDetails,
   resetSelectedBlock,
 } from "../store/blockSelectedSlice";
-import { Container, ListGroup, Table } from "react-bootstrap";
+import { Container, ListGroup, Table, Button } from "react-bootstrap";
+import { BsCopy } from "react-icons/bs";
 import BlocksSwiper from "./BlocksSwiper";
 
 const BlockDetails = () => {
@@ -45,8 +46,8 @@ const BlockDetails = () => {
       return (
         <p>
           No block with {blockIdentifier.length === 64 ? "hash" : "index"} of{" "}
-          <span className="text-danger">{blockIdentifier}</span> could be found
-          in the chain.
+          <span className="text-info">{blockIdentifier}</span> could be found in
+          the chain.
         </p>
       );
     } else {
@@ -65,22 +66,62 @@ const BlockDetails = () => {
       : address;
   };
 
+  const copyToClipboard = async (text) => {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (err) {
+      console.log("Failed to copy: ", err);
+    }
+  };
+
   return (
     <div>
       <h2 className="h3">Block Details for #{block && block.index}</h2>
 
       {block && (
         <div className="mb-5">
-          <Container>
+          <Container className="font-monospace">
             <p>Index: {block.index}</p>
             <p>
               Timestamp: {block.timestamp}: {formatDate(block.timestamp)}
             </p>
             <p>Block Creator: {block.blockCreator}</p>
-            <p>Hash: {block.hash}</p>
-            <p>Previous Hash: {block.previousHash}</p>
             <p>
-              Owner Address:{" "}
+              Hash: {block.hash}
+              <Button
+                variant="link"
+                className="link-info"
+                title="Copy to clipboard."
+                onClick={(event) => {
+                  copyToClipboard(block.hash);
+                  event.currentTarget.blur();
+                }}
+              >
+                <BsCopy />
+              </Button>
+            </p>
+            <p>
+              Previous Hash:{" "}
+              <Link
+                to={`/blocks/${block.previousHash}`}
+                className={`link-info`}
+              >
+                {block.previousHash}
+              </Link>
+              <Button
+                variant="link"
+                className="link-info"
+                title="Copy to clipboard."
+                onClick={(event) => {
+                  copyToClipboard(block.previousHash);
+                  event.currentTarget.blur();
+                }}
+              >
+                <BsCopy />
+              </Button>
+            </p>
+            <p>
+              Creator Address:{" "}
               <Link
                 to={`/entries?publicKey=${block.ownerAddress}`}
                 className={`link-info`}
@@ -88,6 +129,17 @@ const BlockDetails = () => {
                 {" "}
                 {block.ownerAddress}
               </Link>
+              <Button
+                variant="link"
+                className="link-info"
+                title="Copy to clipboard."
+                onClick={(event) => {
+                  copyToClipboard(block.ownerAddress);
+                  event.currentTarget.blur();
+                }}
+              >
+                <BsCopy />
+              </Button>
             </p>
             {Object.keys(block)
               .filter(
@@ -111,7 +163,7 @@ const BlockDetails = () => {
               <h2 className="h3 mt-5 mb-3">Block Data Entries</h2>
 
               {Array.isArray(block.data) ? (
-                <Table striped bordered hover>
+                <Table striped bordered hover className="font-monospace">
                   <thead>
                     <tr>
                       <th>Entry ID</th>
@@ -129,8 +181,19 @@ const BlockDetails = () => {
                             to={`/entries/${item.entryId}`}
                             className={`link-info`}
                           >
-                            {item.entryId}
-                          </Link>
+                            {formatAddress(item.entryId)}
+                          </Link>{" "}
+                          <Button
+                            variant="link"
+                            className="link-info"
+                            title="Copy to clipboard."
+                            onClick={(event) => {
+                              copyToClipboard(item.entryId);
+                              event.currentTarget.blur();
+                            }}
+                          >
+                            <BsCopy />
+                          </Button>
                         </td>
                         <td title={item.from}>
                           <Link
@@ -138,7 +201,18 @@ const BlockDetails = () => {
                             className={`link-info`}
                           >
                             {formatAddress(item.from)}
-                          </Link>
+                          </Link>{" "}
+                          <Button
+                            variant="link"
+                            className="link-info"
+                            title="Copy to clipboard."
+                            onClick={(event) => {
+                              copyToClipboard(item.from);
+                              event.currentTarget.blur();
+                            }}
+                          >
+                            <BsCopy />
+                          </Button>
                         </td>
                         <td title={item.from}>
                           <Link
@@ -147,8 +221,19 @@ const BlockDetails = () => {
                           >
                             {formatAddress(item.to)}
                           </Link>
+                          <Button
+                            variant="link"
+                            className="link-info"
+                            title="Copy to clipboard."
+                            onClick={(event) => {
+                              copyToClipboard(item.to);
+                              event.currentTarget.blur();
+                            }}
+                          >
+                            <BsCopy />
+                          </Button>
                         </td>
-                        <td>{item.amount}</td>
+                        <td className="text-end">{item.amount}</td>
                         <td>{JSON.stringify(item.data)}</td>
                       </tr>
                     ))}

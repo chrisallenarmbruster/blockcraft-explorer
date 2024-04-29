@@ -97,7 +97,7 @@ const BlockchainInfo = () => {
                 <strong>Height:&nbsp;</strong>
                 {currentHeight}
                 <Button variant="link" onClick={handleRefresh}>
-                  <i className="bi bi-arrow-clockwise"></i>
+                  <i className="bi bi-arrow-clockwise text-info"></i>
                 </Button>
               </span>
             </Col>
