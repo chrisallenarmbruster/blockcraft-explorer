@@ -3,8 +3,8 @@
   Description: This component renders the navigation bar for the application. It includes navigation links as well as a search form.
 */
 
-import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import React, { useState } from "react"
+import { Link, useNavigate } from "react-router-dom"
 import {
   Container,
   Navbar,
@@ -12,33 +12,37 @@ import {
   Form,
   FormControl,
   Button,
-} from "react-bootstrap";
-import { BiSearchAlt2 } from "react-icons/bi";
+} from "react-bootstrap"
+import { BiSearchAlt2 } from "react-icons/bi"
 
 const NavBar = () => {
-  const [searchTerm, setSearchTerm] = useState("");
-  const navigate = useNavigate();
+  const [searchTerm, setSearchTerm] = useState("")
+  const navigate = useNavigate()
 
   const handleInputChange = (event) => {
-    setSearchTerm(event.target.value);
-  };
+    setSearchTerm(event.target.value)
+  }
 
   const handleSubmit = (event) => {
-    event.preventDefault();
+    event.preventDefault()
     // const parsedTerm = parseInt(searchTerm);
     if (/^\d+$/.test(searchTerm) && parseInt(searchTerm) < 1000000000) {
-      navigate(`/blocks/${searchTerm}`);
+      navigate(`/blocks/${searchTerm}`)
     } else if (/^[a-fA-F0-9]{64}$/.test(searchTerm)) {
-      console.log("searchTerm", searchTerm);
-      navigate(`/blocks/${encodeURIComponent(searchTerm)}`);
-    } else if (/^(02|03)[a-fA-F0-9]{64}$/.test(searchTerm)) {
-      navigate(`/entries?publicKey=${encodeURIComponent(searchTerm)}`);
+      console.log("searchTerm", searchTerm)
+      navigate(`/blocks/${encodeURIComponent(searchTerm)}`)
+    } else if (
+      /^(02|03)[a-fA-F0-9]{64}$/.test(searchTerm) ||
+      searchTerm === "ICO" ||
+      searchTerm === "INCENTIVE"
+    ) {
+      navigate(`/entries?publicKey=${encodeURIComponent(searchTerm)}`)
     } else if (/^[0-9A-Za-z_-]{21}$/.test(searchTerm)) {
-      navigate(`/entries/${encodeURIComponent(searchTerm)}`);
+      navigate(`/entries/${encodeURIComponent(searchTerm)}`)
     } else {
-      navigate(`/search?query=${encodeURIComponent(searchTerm)}`);
+      navigate(`/search?query=${encodeURIComponent(searchTerm)}`)
     }
-  };
+  }
 
   return (
     <Navbar bg="dark" variant="dark" expand="lg">
@@ -79,7 +83,7 @@ const NavBar = () => {
               value={searchTerm}
               onChange={handleInputChange}
               onKeyDown={(event) => {
-                if (event.key === "Enter") handleSubmit(event);
+                if (event.key === "Enter") handleSubmit(event)
               }}
             />
             <Button variant="outline-info" type="submit">
@@ -89,7 +93,7 @@ const NavBar = () => {
         </Navbar.Collapse>
       </Container>
     </Navbar>
-  );
-};
+  )
+}
 
-export default NavBar;
+export default NavBar
