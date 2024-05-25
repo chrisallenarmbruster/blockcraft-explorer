@@ -9,7 +9,7 @@ import { BiCheckCircle, BiXCircle } from "react-icons/bi";
 
 const ValidationIcon = ({ isValid, label, errors = [] }) => {
   return (
-    <ListGroup.Item className="border-0 d-flex align-items-start">
+    <ListGroup.Item className="border-0 d-flex align-items-center lh-sm">
       <div className="me-3">
         {isValid ? (
           <BiCheckCircle className="text-success" size={32} />
@@ -18,7 +18,7 @@ const ValidationIcon = ({ isValid, label, errors = [] }) => {
         )}
       </div>
       <div>
-        <span className="fw-bold">{label}</span>
+        <span className="fw-bold ms-1">{label}</span>
         {errors.length > 0 && (
           <Alert variant="danger" className="ms-4 mt-3">
             {errors.map((error, index) => (

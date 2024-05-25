@@ -13,6 +13,9 @@ const Blocks = () => {
   const navigate = useNavigate();
 
   const [currentPage, setCurrentPage] = useState(1);
+  const [isSmallViewport, setIsSmallViewport] = useState(
+    window.innerWidth < 992
+  );
 
   useEffect(() => {
     dispatch(
@@ -28,6 +31,12 @@ const Blocks = () => {
       dispatch(resetBlocks());
     };
   }, [dispatch, currentPage]);
+
+  useEffect(() => {
+    const handleResize = () => setIsSmallViewport(window.innerWidth < 992);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const handlePrevPage = () => {
     if (currentPage > 1) {
@@ -64,10 +73,6 @@ const Blocks = () => {
     return date.toLocaleString();
   };
 
-  const handleRowClick = (blockIndex) => {
-    navigate(`/blocks/${blockIndex}`);
-  };
-
   const copyToClipboard = async (text) => {
     try {
       await navigator.clipboard.writeText(text);
@@ -79,10 +84,17 @@ const Blocks = () => {
   return (
     <div className="mb-5">
       <h2 className="h3 mb-4">Blocks</h2>
-      <Table striped bordered hover className="font-monospace">
+      <Table
+        striped
+        bordered
+        hover
+        responsive
+        size={isSmallViewport ? "sm" : undefined}
+        className="font-monospace lh-sm text-nowrap align-middle"
+      >
         <thead>
           <tr>
-            <th>Block Index</th>
+            <th>Block</th>
             <th>Creator</th>
             <th>Timestamp</th>
             <th>Hash</th>
@@ -90,14 +102,14 @@ const Blocks = () => {
         </thead>
         <tbody>
           {blocks.map((block, index) => (
-            <tr key={index} onClick={() => handleRowClick(block.index)}>
+            <tr key={index} className="align-middle">
               <td>
                 <Link to={`/blocks/${block.index}`} className={`link-info`}>
                   {block.index}
                 </Link>
               </td>
               <td>{block.blockCreator}</td>
-              <td>
+              <td className="pe-2">
                 {" "}
                 {formatDate(block.timestamp).split(",")[0]} -{" "}
                 {formatDate(block.timestamp).split(",")[1]}
@@ -106,7 +118,7 @@ const Blocks = () => {
                 {block.hash.slice(0, 5)}...{block.hash.slice(-5)}
                 <Button
                   variant="link"
-                  className="link-info"
+                  className="link-info py-0"
                   title="Copy to clipboard."
                   onClick={(event) => {
                     event.stopPropagation();

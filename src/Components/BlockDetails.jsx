@@ -14,7 +14,7 @@
   adjacent blocks in a swiper. The BlocksSwiper is centered on the current block.
 */
 
-import React, { useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useParams, Link } from "react-router-dom";
 import {
@@ -27,6 +27,9 @@ import BlocksSwiper from "./BlocksSwiper";
 
 const BlockDetails = () => {
   const { blockIdentifier } = useParams();
+  const [isSmallViewport, setIsSmallViewport] = useState(
+    window.innerWidth < 992
+  );
   const dispatch = useDispatch();
   const block = useSelector((state) => state.selectedBlock.selectedBlock);
   const isLoading = useSelector((state) => state.selectedBlock.isLoading);
@@ -39,6 +42,12 @@ const BlockDetails = () => {
       dispatch(resetSelectedBlock());
     };
   }, [dispatch, blockIdentifier]);
+
+  useEffect(() => {
+    const handleResize = () => setIsSmallViewport(window.innerWidth < 992);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("res</span>ize", handleResize);
+  }, []);
 
   if (isLoading) return <p>Loading...</p>;
   if (error) {
@@ -66,6 +75,10 @@ const BlockDetails = () => {
       : address;
   };
 
+  const formatData = (data) => {
+    return data.length >= 20 ? `${data.slice(0, 19)}...` : data;
+  };
+
   const copyToClipboard = async (text) => {
     try {
       await navigator.clipboard.writeText(text);
@@ -80,7 +93,7 @@ const BlockDetails = () => {
 
       {block && (
         <div className="mb-5">
-          <Container className="font-monospace">
+          <Container className="font-monospace text-break">
             <p>Index: {block.index}</p>
             <p>
               Timestamp: {block.timestamp}: {formatDate(block.timestamp)}
@@ -90,7 +103,7 @@ const BlockDetails = () => {
               Hash: {block.hash}
               <Button
                 variant="link"
-                className="link-info"
+                className="link-info py-0"
                 title="Copy to clipboard."
                 onClick={(event) => {
                   copyToClipboard(block.hash);
@@ -110,7 +123,7 @@ const BlockDetails = () => {
               </Link>
               <Button
                 variant="link"
-                className="link-info"
+                className="link-info py-0"
                 title="Copy to clipboard."
                 onClick={(event) => {
                   copyToClipboard(block.previousHash);
@@ -131,7 +144,7 @@ const BlockDetails = () => {
               </Link>
               <Button
                 variant="link"
-                className="link-info"
+                className="link-info py-0"
                 title="Copy to clipboard."
                 onClick={(event) => {
                   copyToClipboard(block.ownerAddress);
@@ -163,7 +176,14 @@ const BlockDetails = () => {
               <h2 className="h3 mt-5 mb-3">Block Data Entries</h2>
 
               {Array.isArray(block.data) ? (
-                <Table striped bordered hover className="font-monospace">
+                <Table
+                  striped
+                  bordered
+                  hover
+                  responsive
+                  size={isSmallViewport ? "sm" : undefined}
+                  className="font-monospace lh-sm text-nowrap align-middle"
+                >
                   <thead>
                     <tr>
                       <th>Entry ID</th>
@@ -185,7 +205,7 @@ const BlockDetails = () => {
                           </Link>{" "}
                           <Button
                             variant="link"
-                            className="link-info"
+                            className="link-info py-0"
                             title="Copy to clipboard."
                             onClick={(event) => {
                               copyToClipboard(item.entryId);
@@ -204,7 +224,7 @@ const BlockDetails = () => {
                           </Link>{" "}
                           <Button
                             variant="link"
-                            className="link-info"
+                            className="link-info py-0"
                             title="Copy to clipboard."
                             onClick={(event) => {
                               copyToClipboard(item.from);
@@ -223,7 +243,7 @@ const BlockDetails = () => {
                           </Link>
                           <Button
                             variant="link"
-                            className="link-info"
+                            className="link-info py-0"
                             title="Copy to clipboard."
                             onClick={(event) => {
                               copyToClipboard(item.to);
@@ -234,7 +254,13 @@ const BlockDetails = () => {
                           </Button>
                         </td>
                         <td className="text-end">{item.amount}</td>
-                        <td>{JSON.stringify(item.data)}</td>
+                        <td>
+                          {formatData(
+                            typeof item.data === "object"
+                              ? JSON.stringify(item.data)
+                              : item.data
+                          )}
+                        </td>
                       </tr>
                     ))}
                   </tbody>

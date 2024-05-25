@@ -101,3 +101,11 @@
   text-decoration: underline !important;
   text-underline-offset: 0.3em;
 }
+
+.custom-off-canvas-header .btn-close {
+  background-color: #f8f9fa !important;
+}
+
+.mw-375 {
+  min-width: 375px !important;
+}

@@ -13,6 +13,9 @@ const Entries = () => {
   const location = useLocation();
 
   const [currentPage, setCurrentPage] = useState(1);
+  const [isSmallViewport, setIsSmallViewport] = useState(
+    window.innerWidth < 992
+  );
 
   const getQueryParams = () => new URLSearchParams(location.search);
 
@@ -33,6 +36,12 @@ const Entries = () => {
       dispatch(resetEntries());
     };
   }, [dispatch, currentPage, location.search]);
+
+  useEffect(() => {
+    const handleResize = () => setIsSmallViewport(window.innerWidth < 992);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const handlePrevPage = () => {
     if (currentPage > 1) {
@@ -77,6 +86,10 @@ const Entries = () => {
       : address;
   };
 
+  const formatData = (data) => {
+    return data.length >= 20 ? `${data.slice(0, 19)}...` : data;
+  };
+
   const copyToClipboard = async (text) => {
     try {
       await navigator.clipboard.writeText(text);
@@ -86,41 +99,48 @@ const Entries = () => {
   };
 
   return (
-    <div className="mb-5">
-      <h2 className="h3 mb-4">
-        {meta.queriedPublicKey !== "N/A" ? (
-          <>
+    <div className="mb-5 text-break">
+      {meta.queriedPublicKey !== "N/A" ? (
+        <>
+          <h2 className="h3 mb-4">
             Entries Related to{" "}
             <span title={meta.queriedPublicKey} className="me-5">
               {formatAddress(meta.queriedPublicKey)}
             </span>
-            <br></br>
-            <span className="h4">Amount Balance: {meta.netAmount}</span>
-            <p className="h6 mt-3">
-              Full Key:{" "}
-              <span className="font-monospace">{meta.queriedPublicKey}</span>
-              <Button
-                variant="link"
-                className="link-info"
-                title="Copy to clipboard."
-                onClick={(event) => {
-                  copyToClipboard(meta.queriedPublicKey);
-                  event.currentTarget.blur();
-                }}
-              >
-                <BsCopy />
-              </Button>
-            </p>
-          </>
-        ) : (
-          "Entries"
-        )}
-      </h2>
-      <Table striped bordered hover className="font-monospace">
+          </h2>
+
+          <span className="h4">Amount Balance: {meta.netAmount}</span>
+          <p className="h6 mt-3 font-monospace mb-4">
+            Full Key: {meta.queriedPublicKey}
+            <Button
+              variant="link"
+              className="link-info py-0"
+              title="Copy to clipboard."
+              onClick={(event) => {
+                copyToClipboard(meta.queriedPublicKey);
+                event.currentTarget.blur();
+              }}
+            >
+              <BsCopy />
+            </Button>
+          </p>
+        </>
+      ) : (
+        <h2 className="h3 mb-4">Entries</h2>
+      )}
+
+      <Table
+        striped
+        bordered
+        hover
+        responsive
+        size={isSmallViewport ? "sm" : undefined}
+        className="font-monospace text-nowrap lh-sm"
+      >
         <thead>
           <tr>
             <th>ID</th>
-            <th>Block Index</th>
+            <th>Block</th>
             <th>From</th>
             <th>To</th>
             <th>Amount</th>
@@ -130,7 +150,7 @@ const Entries = () => {
         <tbody>
           {entries.map((entry, index) => (
             <tr key={index}>
-              <td>
+              <td className="align-middle">
                 {" "}
                 <Link
                   to={`/entries/${entry.entryId}`}
@@ -141,7 +161,7 @@ const Entries = () => {
                 </Link>
                 <Button
                   variant="link"
-                  className="link-info"
+                  className="link-info py-0"
                   title="Copy to clipboard."
                   onClick={(event) => {
                     copyToClipboard(entry.entryId);
@@ -152,7 +172,7 @@ const Entries = () => {
                 </Button>
               </td>
 
-              <td>
+              <td className="align-middle">
                 {entry.blockIndex === "pending" ? (
                   "pending"
                 ) : (
@@ -167,7 +187,9 @@ const Entries = () => {
               <td
                 title={entry.from}
                 className={
-                  entry.from === meta.queriedPublicKey ? "fw-bold" : ""
+                  entry.from === meta.queriedPublicKey
+                    ? "fw-bold align-middle"
+                    : "align-middle"
                 }
               >
                 {entry.from !== meta.queriedPublicKey ? (
@@ -182,7 +204,7 @@ const Entries = () => {
                 )}
                 <Button
                   variant="link"
-                  className="link-info"
+                  className="link-info py-0"
                   title="Copy to clipboard."
                   onClick={(event) => {
                     copyToClipboard(entry.from);
@@ -194,7 +216,11 @@ const Entries = () => {
               </td>
               <td
                 title={entry.to}
-                className={entry.to === meta.queriedPublicKey ? "fw-bold" : ""}
+                className={
+                  entry.to === meta.queriedPublicKey
+                    ? "fw-bold align-middle"
+                    : "align-middle"
+                }
               >
                 {entry.to !== meta.queriedPublicKey ? (
                   <Link
@@ -208,7 +234,7 @@ const Entries = () => {
                 )}
                 <Button
                   variant="link"
-                  className="link-info"
+                  className="link-info py-0"
                   title="Copy to clipboard."
                   onClick={(event) => {
                     copyToClipboard(entry.to);
@@ -221,13 +247,13 @@ const Entries = () => {
               <td
                 className={`${
                   entry.from === meta.queriedPublicKey ? "" : ""
-                } text-end`}
+                } text-end align-middle`}
               >
                 {entry.from === meta.queriedPublicKey
                   ? -entry.amount
                   : entry.amount}
               </td>
-              <td>{entry.data}</td>
+              <td className="align-middle">{formatData(entry.data)}</td>
             </tr>
           ))}
         </tbody>

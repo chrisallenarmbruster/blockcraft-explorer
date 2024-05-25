@@ -20,7 +20,7 @@ function App() {
   return (
     <>
       <NavBar />
-      <Container className="mt-3">
+      <Container className="mt-3 mw-375">
         <Routes>
           <Route exact path="/" element={<Home />} />
           <Route path="/blocks/:blockIdentifier" element={<BlockDetails />} />

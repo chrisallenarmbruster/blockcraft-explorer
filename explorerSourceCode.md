@@ -162,7 +162,7 @@ processFiles();
 ```json
 {
   "name": "blockcraft-explorer",
-  "version": "0.5.0",
+  "version": "0.9.0",
   "description": "React frontend for my Blockcraft blockchain package",
   "main": "src/index.jsx",
   "type": "module",
@@ -199,18 +199,19 @@ processFiles();
   "dependencies": {
     "@reduxjs/toolkit": "^2.2.1",
     "@use-gesture/react": "^10.3.1",
-    "@vitejs/plugin-react": "^4.2.1",
     "axios": "^1.6.8",
     "bootstrap": "^5.3.3",
     "bootstrap-icons": "^1.11.3",
-    "glob": "^10.3.10",
     "react": "^18.2.0",
     "react-bootstrap": "^2.10.1",
     "react-dom": "^18.2.0",
     "react-icons": "^5.1.0",
     "react-redux": "^9.1.0",
     "react-router-dom": "^6.22.3",
-    "redux": "^5.0.1",
+    "redux": "^5.0.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.2.1",
     "vite": "^5.1.6"
   }
 }
@@ -289,7 +290,8 @@ import {
   fetchBlockDetails,
   resetSelectedBlock,
 } from "../store/blockSelectedSlice";
-import { Container, ListGroup, Table } from "react-bootstrap";
+import { Container, ListGroup, Table, Button } from "react-bootstrap";
+import { BsCopy } from "react-icons/bs";
 import BlocksSwiper from "./BlocksSwiper";
 
 const BlockDetails = () => {
@@ -313,8 +315,8 @@ const BlockDetails = () => {
       return (
         <p>
           No block with {blockIdentifier.length === 64 ? "hash" : "index"} of{" "}
-          <span className="text-danger">{blockIdentifier}</span> could be found
-          in the chain.
+          <span className="text-info">{blockIdentifier}</span> could be found in
+          the chain.
         </p>
       );
     } else {
@@ -333,26 +335,80 @@ const BlockDetails = () => {
       : address;
   };
 
+  const copyToClipboard = async (text) => {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (err) {
+      console.log("Failed to copy: ", err);
+    }
+  };
+
   return (
     <div>
       <h2 className="h3">Block Details for #{block && block.index}</h2>
 
       {block && (
         <div className="mb-5">
-          <Container>
+          <Container className="font-monospace">
             <p>Index: {block.index}</p>
             <p>
               Timestamp: {block.timestamp}: {formatDate(block.timestamp)}
             </p>
             <p>Block Creator: {block.blockCreator}</p>
-            <p>Hash: {block.hash}</p>
-            <p>Previous Hash: {block.previousHash}</p>
             <p>
-              Owner Address:{" "}
-              <Link to={`/entries?publicKey=${block.ownerAddress}`}>
+              Hash: {block.hash}
+              <Button
+                variant="link"
+                className="link-info"
+                title="Copy to clipboard."
+                onClick={(event) => {
+                  copyToClipboard(block.hash);
+                  event.currentTarget.blur();
+                }}
+              >
+                <BsCopy />
+              </Button>
+            </p>
+            <p>
+              Previous Hash:{" "}
+              <Link
+                to={`/blocks/${block.previousHash}`}
+                className={`link-info`}
+              >
+                {block.previousHash}
+              </Link>
+              <Button
+                variant="link"
+                className="link-info"
+                title="Copy to clipboard."
+                onClick={(event) => {
+                  copyToClipboard(block.previousHash);
+                  event.currentTarget.blur();
+                }}
+              >
+                <BsCopy />
+              </Button>
+            </p>
+            <p>
+              Creator Address:{" "}
+              <Link
+                to={`/entries?publicKey=${block.ownerAddress}`}
+                className={`link-info`}
+              >
                 {" "}
                 {block.ownerAddress}
               </Link>
+              <Button
+                variant="link"
+                className="link-info"
+                title="Copy to clipboard."
+                onClick={(event) => {
+                  copyToClipboard(block.ownerAddress);
+                  event.currentTarget.blur();
+                }}
+              >
+                <BsCopy />
+              </Button>
             </p>
             {Object.keys(block)
               .filter(
@@ -376,7 +432,7 @@ const BlockDetails = () => {
               <h2 className="h3 mt-5 mb-3">Block Data Entries</h2>
 
               {Array.isArray(block.data) ? (
-                <Table striped bordered hover>
+                <Table striped bordered hover className="font-monospace">
                   <thead>
                     <tr>
                       <th>Entry ID</th>
@@ -390,21 +446,63 @@ const BlockDetails = () => {
                     {block.data.map((item, index) => (
                       <tr key={index}>
                         <td>
-                          <Link to={`/entries/${item.entryId}`}>
-                            {item.entryId}
-                          </Link>
+                          <Link
+                            to={`/entries/${item.entryId}`}
+                            className={`link-info`}
+                          >
+                            {formatAddress(item.entryId)}
+                          </Link>{" "}
+                          <Button
+                            variant="link"
+                            className="link-info"
+                            title="Copy to clipboard."
+                            onClick={(event) => {
+                              copyToClipboard(item.entryId);
+                              event.currentTarget.blur();
+                            }}
+                          >
+                            <BsCopy />
+                          </Button>
                         </td>
                         <td title={item.from}>
-                          <Link to={`/entries?publicKey=${item.from}`}>
+                          <Link
+                            to={`/entries?publicKey=${item.from}`}
+                            className={`link-info`}
+                          >
                             {formatAddress(item.from)}
-                          </Link>
+                          </Link>{" "}
+                          <Button
+                            variant="link"
+                            className="link-info"
+                            title="Copy to clipboard."
+                            onClick={(event) => {
+                              copyToClipboard(item.from);
+                              event.currentTarget.blur();
+                            }}
+                          >
+                            <BsCopy />
+                          </Button>
                         </td>
                         <td title={item.from}>
-                          <Link to={`/entries?publicKey=${item.to}`}>
+                          <Link
+                            to={`/entries?publicKey=${item.to}`}
+                            className={`link-info`}
+                          >
                             {formatAddress(item.to)}
                           </Link>
+                          <Button
+                            variant="link"
+                            className="link-info"
+                            title="Copy to clipboard."
+                            onClick={(event) => {
+                              copyToClipboard(item.to);
+                              event.currentTarget.blur();
+                            }}
+                          >
+                            <BsCopy />
+                          </Button>
                         </td>
-                        <td>{item.amount}</td>
+                        <td className="text-end">{item.amount}</td>
                         <td>{JSON.stringify(item.data)}</td>
                       </tr>
                     ))}
@@ -501,7 +599,7 @@ const BlockchainInfo = () => {
               xs={12}
               sm={6}
               md={4}
-              lg={2}
+              lg={3}
               className="d-flex align-items-center"
             >
               <span className="text-nowrap">
@@ -515,7 +613,7 @@ const BlockchainInfo = () => {
               xs={12}
               sm={6}
               md={4}
-              lg={2}
+              lg={3}
               className="d-flex align-items-center"
             >
               <span className="text-nowrap">
@@ -529,14 +627,14 @@ const BlockchainInfo = () => {
               xs={12}
               sm={6}
               md={4}
-              lg={2}
+              lg={3}
               className="d-flex align-items-center"
             >
               <span className="d-flex align-items-center text-nowrap">
                 <strong>Height:&nbsp;</strong>
                 {currentHeight}
                 <Button variant="link" onClick={handleRefresh}>
-                  <i className="bi bi-arrow-clockwise"></i>
+                  <i className="bi bi-arrow-clockwise text-info"></i>
                 </Button>
               </span>
             </Col>
@@ -546,7 +644,7 @@ const BlockchainInfo = () => {
               xs={12}
               sm={6}
               md={4}
-              lg={2}
+              lg={3}
               className="d-flex align-items-center"
             >
               <span className="text-nowrap">
@@ -560,7 +658,7 @@ const BlockchainInfo = () => {
               xs={12}
               sm={6}
               md={4}
-              lg={2}
+              lg={3}
               className="d-flex align-items-center"
             >
               <span className="text-nowrap">
@@ -574,7 +672,7 @@ const BlockchainInfo = () => {
               xs={12}
               sm={6}
               md={4}
-              lg={2}
+              lg={3}
               className="d-flex align-items-center"
             >
               <span className="text-nowrap">
@@ -706,6 +804,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { fetchBlocks, resetBlocks } from "../store/blocksSlice";
 import { Button, Alert, Spinner, Table } from "react-bootstrap";
 import { Link, useNavigate } from "react-router-dom";
+import { BsCopy } from "react-icons/bs";
 
 const Blocks = () => {
   const { blocks, meta, isLoading, error } = useSelector(
@@ -770,10 +869,18 @@ const Blocks = () => {
     navigate(`/blocks/${blockIndex}`);
   };
 
+  const copyToClipboard = async (text) => {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (err) {
+      console.log("Failed to copy: ", err);
+    }
+  };
+
   return (
     <div className="mb-5">
       <h2 className="h3 mb-4">Blocks</h2>
-      <Table striped bordered hover>
+      <Table striped bordered hover className="font-monospace">
         <thead>
           <tr>
             <th>Block Index</th>
@@ -786,7 +893,9 @@ const Blocks = () => {
           {blocks.map((block, index) => (
             <tr key={index} onClick={() => handleRowClick(block.index)}>
               <td>
-                <Link to={`/blocks/${block.index}`}>{block.index}</Link>
+                <Link to={`/blocks/${block.index}`} className={`link-info`}>
+                  {block.index}
+                </Link>
               </td>
               <td>{block.blockCreator}</td>
               <td>
@@ -796,6 +905,18 @@ const Blocks = () => {
               </td>
               <td title={`Hash: ${block.hash}`}>
                 {block.hash.slice(0, 5)}...{block.hash.slice(-5)}
+                <Button
+                  variant="link"
+                  className="link-info"
+                  title="Copy to clipboard."
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    copyToClipboard(block.hash);
+                    event.currentTarget.blur();
+                  }}
+                >
+                  <BsCopy />
+                </Button>
               </td>
             </tr>
           ))}
@@ -1103,21 +1224,23 @@ const BlocksSwiper = ({
         {blocks.map((block, index) => (
           <React.Fragment key={block.index}>
             {index !== 0 && (
-              <div className="bg-black">
+              <div className="bg-info-solid">
                 <hr className="horizontal-line my-0"></hr>
               </div>
             )}
             <Card
               className={`miniCard border-2 rounded-3 ${
                 index === blockArrayIndex
-                  ? "bg-info bg-opacity-50 border-info"
-                  : "bg-info bg-opacity-25 border-info"
+                  ? "bg-info-highlight border-info-highlight"
+                  : "bg-info-muted border-info"
               } `}
             >
               <Card.Body className="d-flex align-items-center justify-content-center">
                 <Link
                   to={`/blocks/${block.index}`}
-                  className="link-offset-1 link-offset-1-hover link-underline link-underline-opacity-0 link-underline-opacity-75-hover"
+                  className={` ${
+                    index === blockArrayIndex ? "link-light" : "link-info"
+                  }`}
                 >
                   <div className="fs-6 no-select ">#{block.index}</div>
                 </Link>
@@ -1161,6 +1284,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { fetchEntries, resetError, resetEntries } from "../store/entriesSlice";
 import { Button, Alert, Spinner, Table } from "react-bootstrap";
 import { Link, useLocation } from "react-router-dom";
+import { BsCopy } from "react-icons/bs";
 
 const Entries = () => {
   const { entries, meta, isLoading, error } = useSelector(
@@ -1210,16 +1334,19 @@ const Entries = () => {
       </Spinner>
     );
 
-  if (error)
-    return (
-      <Alert
-        variant="danger"
-        onClose={() => dispatch(resetError())}
-        dismissible
-      >
-        {error}
-      </Alert>
-    );
+  if (error) {
+    const publicKey = getQueryParams().get("publicKey");
+    if (publicKey && error === "Server responded with status: 404") {
+      return (
+        <p>
+          No entries related to <span className="text-info">{publicKey}</span>{" "}
+          could be found in the chain.
+        </p>
+      );
+    } else {
+      return <p>Error: {error}</p>;
+    }
+  }
 
   const formatAddress = (address) => {
     if (!address) {
@@ -1229,6 +1356,14 @@ const Entries = () => {
     return address.length >= 11
       ? `${address.slice(0, 6)}...${address.slice(-4)}`
       : address;
+  };
+
+  const copyToClipboard = async (text) => {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (err) {
+      console.log("Failed to copy: ", err);
+    }
   };
 
   return (
@@ -1242,12 +1377,27 @@ const Entries = () => {
             </span>
             <br></br>
             <span className="h4">Amount Balance: {meta.netAmount}</span>
+            <p className="h6 mt-3">
+              Full Key:{" "}
+              <span className="font-monospace">{meta.queriedPublicKey}</span>
+              <Button
+                variant="link"
+                className="link-info"
+                title="Copy to clipboard."
+                onClick={(event) => {
+                  copyToClipboard(meta.queriedPublicKey);
+                  event.currentTarget.blur();
+                }}
+              >
+                <BsCopy />
+              </Button>
+            </p>
           </>
         ) : (
           "Entries"
         )}
       </h2>
-      <Table striped bordered hover>
+      <Table striped bordered hover className="font-monospace">
         <thead>
           <tr>
             <th>ID</th>
@@ -1263,14 +1413,34 @@ const Entries = () => {
             <tr key={index}>
               <td>
                 {" "}
-                <Link to={`/entries/${entry.entryId}`}>{entry.entryId}</Link>
+                <Link
+                  to={`/entries/${entry.entryId}`}
+                  className={`link-info`}
+                  title={entry.entryId}
+                >
+                  {formatAddress(entry.entryId)}
+                </Link>
+                <Button
+                  variant="link"
+                  className="link-info"
+                  title="Copy to clipboard."
+                  onClick={(event) => {
+                    copyToClipboard(entry.entryId);
+                    event.currentTarget.blur();
+                  }}
+                >
+                  <BsCopy />
+                </Button>
               </td>
 
               <td>
                 {entry.blockIndex === "pending" ? (
                   "pending"
                 ) : (
-                  <Link to={`/blocks/${entry.blockIndex}`}>
+                  <Link
+                    to={`/blocks/${entry.blockIndex}`}
+                    className={`link-info`}
+                  >
                     {entry.blockIndex}
                   </Link>
                 )}
@@ -1282,28 +1452,56 @@ const Entries = () => {
                 }
               >
                 {entry.from !== meta.queriedPublicKey ? (
-                  <Link to={`/entries?publicKey=${entry.from}`}>
+                  <Link
+                    to={`/entries?publicKey=${entry.from}`}
+                    className={`link-info`}
+                  >
                     {formatAddress(entry.from)}
                   </Link>
                 ) : (
                   formatAddress(entry.from)
                 )}
+                <Button
+                  variant="link"
+                  className="link-info"
+                  title="Copy to clipboard."
+                  onClick={(event) => {
+                    copyToClipboard(entry.from);
+                    event.currentTarget.blur();
+                  }}
+                >
+                  <BsCopy />
+                </Button>
               </td>
               <td
                 title={entry.to}
                 className={entry.to === meta.queriedPublicKey ? "fw-bold" : ""}
               >
                 {entry.to !== meta.queriedPublicKey ? (
-                  <Link to={`/entries?publicKey=${entry.to}`}>
+                  <Link
+                    to={`/entries?publicKey=${entry.to}`}
+                    className={`link-info`}
+                  >
                     {formatAddress(entry.to)}
                   </Link>
                 ) : (
                   formatAddress(entry.to)
                 )}
+                <Button
+                  variant="link"
+                  className="link-info"
+                  title="Copy to clipboard."
+                  onClick={(event) => {
+                    copyToClipboard(entry.to);
+                    event.currentTarget.blur();
+                  }}
+                >
+                  <BsCopy />
+                </Button>
               </td>
               <td
                 className={`${
-                  entry.from === meta.queriedPublicKey ? "text-danger" : ""
+                  entry.from === meta.queriedPublicKey ? "" : ""
                 } text-end`}
               >
                 {entry.from === meta.queriedPublicKey
@@ -1356,7 +1554,8 @@ import {
   fetchEntryDetails,
   resetSelectedEntry,
 } from "../store/entrySelectedSlice";
-import { Container, ListGroup, Table } from "react-bootstrap";
+import { Container, Button } from "react-bootstrap";
+import { BsCopy } from "react-icons/bs";
 
 const EntryDetails = () => {
   const { entryIdentifier } = useParams();
@@ -1395,30 +1594,87 @@ const EntryDetails = () => {
     return date.toLocaleString();
   };
 
+  const copyToClipboard = async (text) => {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (err) {
+      console.log("Failed to copy: ", err);
+    }
+  };
+
   return (
     <div>
       <h2 className="h3 mb-3">Entry Details</h2>
 
       {entry && (
         <div>
-          <Container>
-            <p>Entry ID: {entry.entryId}</p>
+          <Container className="font-monospace text-break">
+            <p>
+              Entry ID: {entry.entryId}
+              <Button
+                variant="link"
+                className="link-info"
+                title="Copy to clipboard."
+                onClick={(event) => {
+                  copyToClipboard(entry.entryId);
+                  event.currentTarget.blur();
+                }}
+              >
+                <BsCopy />
+              </Button>
+            </p>
             <p>
               Block Index:{" "}
               {entry.blockIndex === "pending" ? (
                 "pending"
               ) : (
-                <Link to={`/blocks/${entry.blockIndex}`}>
+                <Link
+                  to={`/blocks/${entry.blockIndex}`}
+                  className={`link-info`}
+                >
                   {entry.blockIndex}
                 </Link>
               )}
             </p>
             <p>
               From:{" "}
-              <Link to={`/entries?publicKey=${entry.from}`}>{entry.from}</Link>
+              <Link
+                to={`/entries?publicKey=${entry.from}`}
+                className={`link-info`}
+              >
+                {entry.from}
+              </Link>
+              <Button
+                variant="link"
+                className="link-info"
+                title="Copy to clipboard."
+                onClick={(event) => {
+                  copyToClipboard(entry.from);
+                  event.currentTarget.blur();
+                }}
+              >
+                <BsCopy />
+              </Button>
             </p>
             <p>
-              To: <Link to={`/entries?publicKey=${entry.to}`}>{entry.to}</Link>
+              To:{" "}
+              <Link
+                to={`/entries?publicKey=${entry.to}`}
+                className={`link-info`}
+              >
+                {entry.to}
+              </Link>
+              <Button
+                variant="link"
+                className="link-info"
+                title="Copy to clipboard."
+                onClick={(event) => {
+                  copyToClipboard(entry.to);
+                  event.currentTarget.blur();
+                }}
+              >
+                <BsCopy />
+              </Button>
             </p>
             <p>Type: {entry.type}</p>
             <p>Amount: {entry.amount}</p>
@@ -1430,8 +1686,37 @@ const EntryDetails = () => {
               Data:<br></br>
               {entry.data}
             </p>
-            <p>Hash: {entry.hash}</p>
-            <p>Signature: {entry.signature}</p>
+            <p>
+              Hash: {entry.hash}
+              <Button
+                variant="link"
+                className="link-info"
+                title="Copy to clipboard."
+                onClick={(event) => {
+                  copyToClipboard(entry.hash);
+                  event.currentTarget.blur();
+                }}
+              >
+                <BsCopy />
+              </Button>
+            </p>
+            <p className="text-wrap">
+              Signature:{" "}
+              <div className="text-wrap text-break">
+                {entry.signature}
+                <Button
+                  variant="link"
+                  className="link-info"
+                  title="Copy to clipboard."
+                  onClick={(event) => {
+                    copyToClipboard(entry.signature);
+                    event.currentTarget.blur();
+                  }}
+                >
+                  <BsCopy />
+                </Button>
+              </div>
+            </p>
             <p>
               Integrity:{" "}
               <span className={entry.isValid ? "text-success" : "text-danger"}>
@@ -1489,8 +1774,8 @@ export default Home;
   Description: This component renders the navigation bar for the application. It includes navigation links as well as a search form.
 */
 
-import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import React, { useState } from "react"
+import { Link, useNavigate } from "react-router-dom"
 import {
   Container,
   Navbar,
@@ -1498,31 +1783,37 @@ import {
   Form,
   FormControl,
   Button,
-} from "react-bootstrap";
-import { BiSearchAlt2 } from "react-icons/bi";
+} from "react-bootstrap"
+import { BiSearchAlt2 } from "react-icons/bi"
 
 const NavBar = () => {
-  const [searchTerm, setSearchTerm] = useState("");
-  const navigate = useNavigate();
+  const [searchTerm, setSearchTerm] = useState("")
+  const navigate = useNavigate()
 
   const handleInputChange = (event) => {
-    setSearchTerm(event.target.value);
-  };
+    setSearchTerm(event.target.value)
+  }
 
   const handleSubmit = (event) => {
-    event.preventDefault();
+    event.preventDefault()
     // const parsedTerm = parseInt(searchTerm);
     if (/^\d+$/.test(searchTerm) && parseInt(searchTerm) < 1000000000) {
-      navigate(`/blocks/${searchTerm}`);
+      navigate(`/blocks/${searchTerm}`)
     } else if (/^[a-fA-F0-9]{64}$/.test(searchTerm)) {
-      console.log("searchTerm", searchTerm);
-      navigate(`/blocks/${encodeURIComponent(searchTerm)}`);
+      console.log("searchTerm", searchTerm)
+      navigate(`/blocks/${encodeURIComponent(searchTerm)}`)
+    } else if (
+      /^(02|03)[a-fA-F0-9]{64}$/.test(searchTerm) ||
+      searchTerm === "ICO" ||
+      searchTerm === "INCENTIVE"
+    ) {
+      navigate(`/entries?publicKey=${encodeURIComponent(searchTerm)}`)
     } else if (/^[0-9A-Za-z_-]{21}$/.test(searchTerm)) {
-      navigate(`/entries/${encodeURIComponent(searchTerm)}`);
+      navigate(`/entries/${encodeURIComponent(searchTerm)}`)
     } else {
-      navigate(`/search?query=${encodeURIComponent(searchTerm)}`);
+      navigate(`/search?query=${encodeURIComponent(searchTerm)}`)
     }
-  };
+  }
 
   return (
     <Navbar bg="dark" variant="dark" expand="lg">
@@ -1563,20 +1854,20 @@ const NavBar = () => {
               value={searchTerm}
               onChange={handleInputChange}
               onKeyDown={(event) => {
-                if (event.key === "Enter") handleSubmit(event);
+                if (event.key === "Enter") handleSubmit(event)
               }}
             />
-            <Button variant="outline-success" type="submit">
+            <Button variant="outline-info" type="submit">
               <BiSearchAlt2 className="text-info" size={24} />
             </Button>
           </Form>
         </Navbar.Collapse>
       </Container>
     </Navbar>
-  );
-};
+  )
+}
 
-export default NavBar;
+export default NavBar
 
 ```
 
@@ -1620,8 +1911,8 @@ const Nodes = () => {
             >
               <Card>
                 <Card.Header
-                  className={`bg-info ${
-                    index === 0 ? "bg-opacity-50" : "bg-opacity-25"
+                  className={`${
+                    index === 0 ? "bg-info-highlight" : "bg-info-muted "
                   } border-info`}
                 >
                   <Card.Title>
@@ -1663,7 +1954,7 @@ const SearchResults = () => {
     <Container>
       <h2 className="h3">Search Results</h2>
       <p>
-        No results found for <span className="text-danger">"{query}"</span>.{" "}
+        No results found for <span className="text-info">"{query}"</span>.{" "}
         <br></br>Try entering a valid block index, block hash or entry ID.
       </p>
     </Container>
@@ -1688,24 +1979,27 @@ import { BiCheckCircle, BiXCircle } from "react-icons/bi";
 
 const ValidationIcon = ({ isValid, label, errors = [] }) => {
   return (
-    <ListGroup.Item className="border-0">
-      <span className="me-3">
+    <ListGroup.Item className="border-0 d-flex align-items-start">
+      <div className="me-3">
         {isValid ? (
           <BiCheckCircle className="text-success" size={32} />
         ) : (
           <BiXCircle className="text-danger" size={32} />
         )}
-      </span>
-      <span className="fw-bold">{label}</span>
-      {errors.length > 0 && (
-        <Alert variant="danger" className="ms-4 mt-3">
-          {errors.map((error, index) => (
-            <p key={index} className="my-0">
-              Block {error.blockNumber} failed {error.errorType} validation test
-            </p>
-          ))}
-        </Alert>
-      )}
+      </div>
+      <div>
+        <span className="fw-bold">{label}</span>
+        {errors.length > 0 && (
+          <Alert variant="danger" className="ms-4 mt-3">
+            {errors.map((error, index) => (
+              <p key={index} className="my-0">
+                Block {error.blockNumber} failed {error.errorType} validation
+                test
+              </p>
+            ))}
+          </Alert>
+        )}
+      </div>
     </ListGroup.Item>
   );
 };
@@ -1731,6 +2025,7 @@ import { BrowserRouter as Router } from "react-router-dom";
 import store from "./store";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
+import "./override.css";
 
 const container = document.getElementById("root");
 const root = createRoot(container);
@@ -2394,7 +2689,8 @@ import {
   fetchBlockDetails,
   resetSelectedBlock,
 } from "../store/blockSelectedSlice";
-import { Container, ListGroup, Table } from "react-bootstrap";
+import { Container, ListGroup, Table, Button } from "react-bootstrap";
+import { BsCopy } from "react-icons/bs";
 import BlocksSwiper from "./BlocksSwiper";
 
 const BlockDetails = () => {
@@ -2418,8 +2714,8 @@ const BlockDetails = () => {
       return (
         <p>
           No block with {blockIdentifier.length === 64 ? "hash" : "index"} of{" "}
-          <span className="text-danger">{blockIdentifier}</span> could be found
-          in the chain.
+          <span className="text-info">{blockIdentifier}</span> could be found in
+          the chain.
         </p>
       );
     } else {
@@ -2438,26 +2734,80 @@ const BlockDetails = () => {
       : address;
   };
 
+  const copyToClipboard = async (text) => {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (err) {
+      console.log("Failed to copy: ", err);
+    }
+  };
+
   return (
     <div>
       <h2 className="h3">Block Details for #{block && block.index}</h2>
 
       {block && (
         <div className="mb-5">
-          <Container>
+          <Container className="font-monospace">
             <p>Index: {block.index}</p>
             <p>
               Timestamp: {block.timestamp}: {formatDate(block.timestamp)}
             </p>
             <p>Block Creator: {block.blockCreator}</p>
-            <p>Hash: {block.hash}</p>
-            <p>Previous Hash: {block.previousHash}</p>
             <p>
-              Owner Address:{" "}
-              <Link to={`/entries?publicKey=${block.ownerAddress}`}>
+              Hash: {block.hash}
+              <Button
+                variant="link"
+                className="link-info"
+                title="Copy to clipboard."
+                onClick={(event) => {
+                  copyToClipboard(block.hash);
+                  event.currentTarget.blur();
+                }}
+              >
+                <BsCopy />
+              </Button>
+            </p>
+            <p>
+              Previous Hash:{" "}
+              <Link
+                to={`/blocks/${block.previousHash}`}
+                className={`link-info`}
+              >
+                {block.previousHash}
+              </Link>
+              <Button
+                variant="link"
+                className="link-info"
+                title="Copy to clipboard."
+                onClick={(event) => {
+                  copyToClipboard(block.previousHash);
+                  event.currentTarget.blur();
+                }}
+              >
+                <BsCopy />
+              </Button>
+            </p>
+            <p>
+              Creator Address:{" "}
+              <Link
+                to={`/entries?publicKey=${block.ownerAddress}`}
+                className={`link-info`}
+              >
                 {" "}
                 {block.ownerAddress}
               </Link>
+              <Button
+                variant="link"
+                className="link-info"
+                title="Copy to clipboard."
+                onClick={(event) => {
+                  copyToClipboard(block.ownerAddress);
+                  event.currentTarget.blur();
+                }}
+              >
+                <BsCopy />
+              </Button>
             </p>
             {Object.keys(block)
               .filter(
@@ -2481,7 +2831,7 @@ const BlockDetails = () => {
               <h2 className="h3 mt-5 mb-3">Block Data Entries</h2>
 
               {Array.isArray(block.data) ? (
-                <Table striped bordered hover>
+                <Table striped bordered hover className="font-monospace">
                   <thead>
                     <tr>
                       <th>Entry ID</th>
@@ -2495,21 +2845,63 @@ const BlockDetails = () => {
                     {block.data.map((item, index) => (
                       <tr key={index}>
                         <td>
-                          <Link to={`/entries/${item.entryId}`}>
-                            {item.entryId}
-                          </Link>
+                          <Link
+                            to={`/entries/${item.entryId}`}
+                            className={`link-info`}
+                          >
+                            {formatAddress(item.entryId)}
+                          </Link>{" "}
+                          <Button
+                            variant="link"
+                            className="link-info"
+                            title="Copy to clipboard."
+                            onClick={(event) => {
+                              copyToClipboard(item.entryId);
+                              event.currentTarget.blur();
+                            }}
+                          >
+                            <BsCopy />
+                          </Button>
                         </td>
                         <td title={item.from}>
-                          <Link to={`/entries?publicKey=${item.from}`}>
+                          <Link
+                            to={`/entries?publicKey=${item.from}`}
+                            className={`link-info`}
+                          >
                             {formatAddress(item.from)}
-                          </Link>
+                          </Link>{" "}
+                          <Button
+                            variant="link"
+                            className="link-info"
+                            title="Copy to clipboard."
+                            onClick={(event) => {
+                              copyToClipboard(item.from);
+                              event.currentTarget.blur();
+                            }}
+                          >
+                            <BsCopy />
+                          </Button>
                         </td>
                         <td title={item.from}>
-                          <Link to={`/entries?publicKey=${item.to}`}>
+                          <Link
+                            to={`/entries?publicKey=${item.to}`}
+                            className={`link-info`}
+                          >
                             {formatAddress(item.to)}
                           </Link>
+                          <Button
+                            variant="link"
+                            className="link-info"
+                            title="Copy to clipboard."
+                            onClick={(event) => {
+                              copyToClipboard(item.to);
+                              event.currentTarget.blur();
+                            }}
+                          >
+                            <BsCopy />
+                          </Button>
                         </td>
-                        <td>{item.amount}</td>
+                        <td className="text-end">{item.amount}</td>
                         <td>{JSON.stringify(item.data)}</td>
                       </tr>
                     ))}
@@ -2606,7 +2998,7 @@ const BlockchainInfo = () => {
               xs={12}
               sm={6}
               md={4}
-              lg={2}
+              lg={3}
               className="d-flex align-items-center"
             >
               <span className="text-nowrap">
@@ -2620,7 +3012,7 @@ const BlockchainInfo = () => {
               xs={12}
               sm={6}
               md={4}
-              lg={2}
+              lg={3}
               className="d-flex align-items-center"
             >
               <span className="text-nowrap">
@@ -2634,14 +3026,14 @@ const BlockchainInfo = () => {
               xs={12}
               sm={6}
               md={4}
-              lg={2}
+              lg={3}
               className="d-flex align-items-center"
             >
               <span className="d-flex align-items-center text-nowrap">
                 <strong>Height:&nbsp;</strong>
                 {currentHeight}
                 <Button variant="link" onClick={handleRefresh}>
-                  <i className="bi bi-arrow-clockwise"></i>
+                  <i className="bi bi-arrow-clockwise text-info"></i>
                 </Button>
               </span>
             </Col>
@@ -2651,7 +3043,7 @@ const BlockchainInfo = () => {
               xs={12}
               sm={6}
               md={4}
-              lg={2}
+              lg={3}
               className="d-flex align-items-center"
             >
               <span className="text-nowrap">
@@ -2665,7 +3057,7 @@ const BlockchainInfo = () => {
               xs={12}
               sm={6}
               md={4}
-              lg={2}
+              lg={3}
               className="d-flex align-items-center"
             >
               <span className="text-nowrap">
@@ -2679,7 +3071,7 @@ const BlockchainInfo = () => {
               xs={12}
               sm={6}
               md={4}
-              lg={2}
+              lg={3}
               className="d-flex align-items-center"
             >
               <span className="text-nowrap">
@@ -2811,6 +3203,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { fetchBlocks, resetBlocks } from "../store/blocksSlice";
 import { Button, Alert, Spinner, Table } from "react-bootstrap";
 import { Link, useNavigate } from "react-router-dom";
+import { BsCopy } from "react-icons/bs";
 
 const Blocks = () => {
   const { blocks, meta, isLoading, error } = useSelector(
@@ -2875,10 +3268,18 @@ const Blocks = () => {
     navigate(`/blocks/${blockIndex}`);
   };
 
+  const copyToClipboard = async (text) => {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (err) {
+      console.log("Failed to copy: ", err);
+    }
+  };
+
   return (
     <div className="mb-5">
       <h2 className="h3 mb-4">Blocks</h2>
-      <Table striped bordered hover>
+      <Table striped bordered hover className="font-monospace">
         <thead>
           <tr>
             <th>Block Index</th>
@@ -2891,7 +3292,9 @@ const Blocks = () => {
           {blocks.map((block, index) => (
             <tr key={index} onClick={() => handleRowClick(block.index)}>
               <td>
-                <Link to={`/blocks/${block.index}`}>{block.index}</Link>
+                <Link to={`/blocks/${block.index}`} className={`link-info`}>
+                  {block.index}
+                </Link>
               </td>
               <td>{block.blockCreator}</td>
               <td>
@@ -2901,6 +3304,18 @@ const Blocks = () => {
               </td>
               <td title={`Hash: ${block.hash}`}>
                 {block.hash.slice(0, 5)}...{block.hash.slice(-5)}
+                <Button
+                  variant="link"
+                  className="link-info"
+                  title="Copy to clipboard."
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    copyToClipboard(block.hash);
+                    event.currentTarget.blur();
+                  }}
+                >
+                  <BsCopy />
+                </Button>
               </td>
             </tr>
           ))}
@@ -3208,21 +3623,23 @@ const BlocksSwiper = ({
         {blocks.map((block, index) => (
           <React.Fragment key={block.index}>
             {index !== 0 && (
-              <div className="bg-black">
+              <div className="bg-info-solid">
                 <hr className="horizontal-line my-0"></hr>
               </div>
             )}
             <Card
               className={`miniCard border-2 rounded-3 ${
                 index === blockArrayIndex
-                  ? "bg-info bg-opacity-50 border-info"
-                  : "bg-info bg-opacity-25 border-info"
+                  ? "bg-info-highlight border-info-highlight"
+                  : "bg-info-muted border-info"
               } `}
             >
               <Card.Body className="d-flex align-items-center justify-content-center">
                 <Link
                   to={`/blocks/${block.index}`}
-                  className="link-offset-1 link-offset-1-hover link-underline link-underline-opacity-0 link-underline-opacity-75-hover"
+                  className={` ${
+                    index === blockArrayIndex ? "link-light" : "link-info"
+                  }`}
                 >
                   <div className="fs-6 no-select ">#{block.index}</div>
                 </Link>
@@ -3266,6 +3683,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { fetchEntries, resetError, resetEntries } from "../store/entriesSlice";
 import { Button, Alert, Spinner, Table } from "react-bootstrap";
 import { Link, useLocation } from "react-router-dom";
+import { BsCopy } from "react-icons/bs";
 
 const Entries = () => {
   const { entries, meta, isLoading, error } = useSelector(
@@ -3315,16 +3733,19 @@ const Entries = () => {
       </Spinner>
     );
 
-  if (error)
-    return (
-      <Alert
-        variant="danger"
-        onClose={() => dispatch(resetError())}
-        dismissible
-      >
-        {error}
-      </Alert>
-    );
+  if (error) {
+    const publicKey = getQueryParams().get("publicKey");
+    if (publicKey && error === "Server responded with status: 404") {
+      return (
+        <p>
+          No entries related to <span className="text-info">{publicKey}</span>{" "}
+          could be found in the chain.
+        </p>
+      );
+    } else {
+      return <p>Error: {error}</p>;
+    }
+  }
 
   const formatAddress = (address) => {
     if (!address) {
@@ -3334,6 +3755,14 @@ const Entries = () => {
     return address.length >= 11
       ? `${address.slice(0, 6)}...${address.slice(-4)}`
       : address;
+  };
+
+  const copyToClipboard = async (text) => {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (err) {
+      console.log("Failed to copy: ", err);
+    }
   };
 
   return (
@@ -3347,12 +3776,27 @@ const Entries = () => {
             </span>
             <br></br>
             <span className="h4">Amount Balance: {meta.netAmount}</span>
+            <p className="h6 mt-3">
+              Full Key:{" "}
+              <span className="font-monospace">{meta.queriedPublicKey}</span>
+              <Button
+                variant="link"
+                className="link-info"
+                title="Copy to clipboard."
+                onClick={(event) => {
+                  copyToClipboard(meta.queriedPublicKey);
+                  event.currentTarget.blur();
+                }}
+              >
+                <BsCopy />
+              </Button>
+            </p>
           </>
         ) : (
           "Entries"
         )}
       </h2>
-      <Table striped bordered hover>
+      <Table striped bordered hover className="font-monospace">
         <thead>
           <tr>
             <th>ID</th>
@@ -3368,14 +3812,34 @@ const Entries = () => {
             <tr key={index}>
               <td>
                 {" "}
-                <Link to={`/entries/${entry.entryId}`}>{entry.entryId}</Link>
+                <Link
+                  to={`/entries/${entry.entryId}`}
+                  className={`link-info`}
+                  title={entry.entryId}
+                >
+                  {formatAddress(entry.entryId)}
+                </Link>
+                <Button
+                  variant="link"
+                  className="link-info"
+                  title="Copy to clipboard."
+                  onClick={(event) => {
+                    copyToClipboard(entry.entryId);
+                    event.currentTarget.blur();
+                  }}
+                >
+                  <BsCopy />
+                </Button>
               </td>
 
               <td>
                 {entry.blockIndex === "pending" ? (
                   "pending"
                 ) : (
-                  <Link to={`/blocks/${entry.blockIndex}`}>
+                  <Link
+                    to={`/blocks/${entry.blockIndex}`}
+                    className={`link-info`}
+                  >
                     {entry.blockIndex}
                   </Link>
                 )}
@@ -3387,28 +3851,56 @@ const Entries = () => {
                 }
               >
                 {entry.from !== meta.queriedPublicKey ? (
-                  <Link to={`/entries?publicKey=${entry.from}`}>
+                  <Link
+                    to={`/entries?publicKey=${entry.from}`}
+                    className={`link-info`}
+                  >
                     {formatAddress(entry.from)}
                   </Link>
                 ) : (
                   formatAddress(entry.from)
                 )}
+                <Button
+                  variant="link"
+                  className="link-info"
+                  title="Copy to clipboard."
+                  onClick={(event) => {
+                    copyToClipboard(entry.from);
+                    event.currentTarget.blur();
+                  }}
+                >
+                  <BsCopy />
+                </Button>
               </td>
               <td
                 title={entry.to}
                 className={entry.to === meta.queriedPublicKey ? "fw-bold" : ""}
               >
                 {entry.to !== meta.queriedPublicKey ? (
-                  <Link to={`/entries?publicKey=${entry.to}`}>
+                  <Link
+                    to={`/entries?publicKey=${entry.to}`}
+                    className={`link-info`}
+                  >
                     {formatAddress(entry.to)}
                   </Link>
                 ) : (
                   formatAddress(entry.to)
                 )}
+                <Button
+                  variant="link"
+                  className="link-info"
+                  title="Copy to clipboard."
+                  onClick={(event) => {
+                    copyToClipboard(entry.to);
+                    event.currentTarget.blur();
+                  }}
+                >
+                  <BsCopy />
+                </Button>
               </td>
               <td
                 className={`${
-                  entry.from === meta.queriedPublicKey ? "text-danger" : ""
+                  entry.from === meta.queriedPublicKey ? "" : ""
                 } text-end`}
               >
                 {entry.from === meta.queriedPublicKey
@@ -3461,7 +3953,8 @@ import {
   fetchEntryDetails,
   resetSelectedEntry,
 } from "../store/entrySelectedSlice";
-import { Container, ListGroup, Table } from "react-bootstrap";
+import { Container, Button } from "react-bootstrap";
+import { BsCopy } from "react-icons/bs";
 
 const EntryDetails = () => {
   const { entryIdentifier } = useParams();
@@ -3500,30 +3993,87 @@ const EntryDetails = () => {
     return date.toLocaleString();
   };
 
+  const copyToClipboard = async (text) => {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (err) {
+      console.log("Failed to copy: ", err);
+    }
+  };
+
   return (
     <div>
       <h2 className="h3 mb-3">Entry Details</h2>
 
       {entry && (
         <div>
-          <Container>
-            <p>Entry ID: {entry.entryId}</p>
+          <Container className="font-monospace text-break">
+            <p>
+              Entry ID: {entry.entryId}
+              <Button
+                variant="link"
+                className="link-info"
+                title="Copy to clipboard."
+                onClick={(event) => {
+                  copyToClipboard(entry.entryId);
+                  event.currentTarget.blur();
+                }}
+              >
+                <BsCopy />
+              </Button>
+            </p>
             <p>
               Block Index:{" "}
               {entry.blockIndex === "pending" ? (
                 "pending"
               ) : (
-                <Link to={`/blocks/${entry.blockIndex}`}>
+                <Link
+                  to={`/blocks/${entry.blockIndex}`}
+                  className={`link-info`}
+                >
                   {entry.blockIndex}
                 </Link>
               )}
             </p>
             <p>
               From:{" "}
-              <Link to={`/entries?publicKey=${entry.from}`}>{entry.from}</Link>
+              <Link
+                to={`/entries?publicKey=${entry.from}`}
+                className={`link-info`}
+              >
+                {entry.from}
+              </Link>
+              <Button
+                variant="link"
+                className="link-info"
+                title="Copy to clipboard."
+                onClick={(event) => {
+                  copyToClipboard(entry.from);
+                  event.currentTarget.blur();
+                }}
+              >
+                <BsCopy />
+              </Button>
             </p>
             <p>
-              To: <Link to={`/entries?publicKey=${entry.to}`}>{entry.to}</Link>
+              To:{" "}
+              <Link
+                to={`/entries?publicKey=${entry.to}`}
+                className={`link-info`}
+              >
+                {entry.to}
+              </Link>
+              <Button
+                variant="link"
+                className="link-info"
+                title="Copy to clipboard."
+                onClick={(event) => {
+                  copyToClipboard(entry.to);
+                  event.currentTarget.blur();
+                }}
+              >
+                <BsCopy />
+              </Button>
             </p>
             <p>Type: {entry.type}</p>
             <p>Amount: {entry.amount}</p>
@@ -3535,8 +4085,37 @@ const EntryDetails = () => {
               Data:<br></br>
               {entry.data}
             </p>
-            <p>Hash: {entry.hash}</p>
-            <p>Signature: {entry.signature}</p>
+            <p>
+              Hash: {entry.hash}
+              <Button
+                variant="link"
+                className="link-info"
+                title="Copy to clipboard."
+                onClick={(event) => {
+                  copyToClipboard(entry.hash);
+                  event.currentTarget.blur();
+                }}
+              >
+                <BsCopy />
+              </Button>
+            </p>
+            <p className="text-wrap">
+              Signature:{" "}
+              <div className="text-wrap text-break">
+                {entry.signature}
+                <Button
+                  variant="link"
+                  className="link-info"
+                  title="Copy to clipboard."
+                  onClick={(event) => {
+                    copyToClipboard(entry.signature);
+                    event.currentTarget.blur();
+                  }}
+                >
+                  <BsCopy />
+                </Button>
+              </div>
+            </p>
             <p>
               Integrity:{" "}
               <span className={entry.isValid ? "text-success" : "text-danger"}>
@@ -3594,8 +4173,8 @@ export default Home;
   Description: This component renders the navigation bar for the application. It includes navigation links as well as a search form.
 */
 
-import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import React, { useState } from "react"
+import { Link, useNavigate } from "react-router-dom"
 import {
   Container,
   Navbar,
@@ -3603,31 +4182,37 @@ import {
   Form,
   FormControl,
   Button,
-} from "react-bootstrap";
-import { BiSearchAlt2 } from "react-icons/bi";
+} from "react-bootstrap"
+import { BiSearchAlt2 } from "react-icons/bi"
 
 const NavBar = () => {
-  const [searchTerm, setSearchTerm] = useState("");
-  const navigate = useNavigate();
+  const [searchTerm, setSearchTerm] = useState("")
+  const navigate = useNavigate()
 
   const handleInputChange = (event) => {
-    setSearchTerm(event.target.value);
-  };
+    setSearchTerm(event.target.value)
+  }
 
   const handleSubmit = (event) => {
-    event.preventDefault();
+    event.preventDefault()
     // const parsedTerm = parseInt(searchTerm);
     if (/^\d+$/.test(searchTerm) && parseInt(searchTerm) < 1000000000) {
-      navigate(`/blocks/${searchTerm}`);
+      navigate(`/blocks/${searchTerm}`)
     } else if (/^[a-fA-F0-9]{64}$/.test(searchTerm)) {
-      console.log("searchTerm", searchTerm);
-      navigate(`/blocks/${encodeURIComponent(searchTerm)}`);
+      console.log("searchTerm", searchTerm)
+      navigate(`/blocks/${encodeURIComponent(searchTerm)}`)
+    } else if (
+      /^(02|03)[a-fA-F0-9]{64}$/.test(searchTerm) ||
+      searchTerm === "ICO" ||
+      searchTerm === "INCENTIVE"
+    ) {
+      navigate(`/entries?publicKey=${encodeURIComponent(searchTerm)}`)
     } else if (/^[0-9A-Za-z_-]{21}$/.test(searchTerm)) {
-      navigate(`/entries/${encodeURIComponent(searchTerm)}`);
+      navigate(`/entries/${encodeURIComponent(searchTerm)}`)
     } else {
-      navigate(`/search?query=${encodeURIComponent(searchTerm)}`);
+      navigate(`/search?query=${encodeURIComponent(searchTerm)}`)
     }
-  };
+  }
 
   return (
     <Navbar bg="dark" variant="dark" expand="lg">
@@ -3668,20 +4253,20 @@ const NavBar = () => {
               value={searchTerm}
               onChange={handleInputChange}
               onKeyDown={(event) => {
-                if (event.key === "Enter") handleSubmit(event);
+                if (event.key === "Enter") handleSubmit(event)
               }}
             />
-            <Button variant="outline-success" type="submit">
+            <Button variant="outline-info" type="submit">
               <BiSearchAlt2 className="text-info" size={24} />
             </Button>
           </Form>
         </Navbar.Collapse>
       </Container>
     </Navbar>
-  );
-};
+  )
+}
 
-export default NavBar;
+export default NavBar
 
 ```
 
@@ -3725,8 +4310,8 @@ const Nodes = () => {
             >
               <Card>
                 <Card.Header
-                  className={`bg-info ${
-                    index === 0 ? "bg-opacity-50" : "bg-opacity-25"
+                  className={`${
+                    index === 0 ? "bg-info-highlight" : "bg-info-muted "
                   } border-info`}
                 >
                   <Card.Title>
@@ -3768,7 +4353,7 @@ const SearchResults = () => {
     <Container>
       <h2 className="h3">Search Results</h2>
       <p>
-        No results found for <span className="text-danger">"{query}"</span>.{" "}
+        No results found for <span className="text-info">"{query}"</span>.{" "}
         <br></br>Try entering a valid block index, block hash or entry ID.
       </p>
     </Container>
@@ -3793,24 +4378,27 @@ import { BiCheckCircle, BiXCircle } from "react-icons/bi";
 
 const ValidationIcon = ({ isValid, label, errors = [] }) => {
   return (
-    <ListGroup.Item className="border-0">
-      <span className="me-3">
+    <ListGroup.Item className="border-0 d-flex align-items-start">
+      <div className="me-3">
         {isValid ? (
           <BiCheckCircle className="text-success" size={32} />
         ) : (
           <BiXCircle className="text-danger" size={32} />
         )}
-      </span>
-      <span className="fw-bold">{label}</span>
-      {errors.length > 0 && (
-        <Alert variant="danger" className="ms-4 mt-3">
-          {errors.map((error, index) => (
-            <p key={index} className="my-0">
-              Block {error.blockNumber} failed {error.errorType} validation test
-            </p>
-          ))}
-        </Alert>
-      )}
+      </div>
+      <div>
+        <span className="fw-bold">{label}</span>
+        {errors.length > 0 && (
+          <Alert variant="danger" className="ms-4 mt-3">
+            {errors.map((error, index) => (
+              <p key={index} className="my-0">
+                Block {error.blockNumber} failed {error.errorType} validation
+                test
+              </p>
+            ))}
+          </Alert>
+        )}
+      </div>
     </ListGroup.Item>
   );
 };
@@ -3836,6 +4424,7 @@ import { BrowserRouter as Router } from "react-router-dom";
 import store from "./store";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
+import "./override.css";
 
 const container = document.getElementById("root");
 const root = createRoot(container);

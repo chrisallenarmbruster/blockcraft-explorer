@@ -64,7 +64,7 @@ const EntryDetails = () => {
               Entry ID: {entry.entryId}
               <Button
                 variant="link"
-                className="link-info"
+                className="link-info py-0"
                 title="Copy to clipboard."
                 onClick={(event) => {
                   copyToClipboard(entry.entryId);
@@ -91,13 +91,13 @@ const EntryDetails = () => {
               From:{" "}
               <Link
                 to={`/entries?publicKey=${entry.from}`}
-                className={`link-info`}
+                className={`link-info text-break text-wrap lh-sm`}
               >
                 {entry.from}
               </Link>
               <Button
                 variant="link"
-                className="link-info"
+                className="link-info py-0"
                 title="Copy to clipboard."
                 onClick={(event) => {
                   copyToClipboard(entry.from);
@@ -111,13 +111,13 @@ const EntryDetails = () => {
               To:{" "}
               <Link
                 to={`/entries?publicKey=${entry.to}`}
-                className={`link-info`}
+                className={`link-info text-break text-wrap lh-sm`}
               >
                 {entry.to}
               </Link>
               <Button
                 variant="link"
-                className="link-info"
+                className="link-info py-0"
                 title="Copy to clipboard."
                 onClick={(event) => {
                   copyToClipboard(entry.to);
@@ -141,7 +141,7 @@ const EntryDetails = () => {
               Hash: {entry.hash}
               <Button
                 variant="link"
-                className="link-info"
+                className="link-info py-0"
                 title="Copy to clipboard."
                 onClick={(event) => {
                   copyToClipboard(entry.hash);
@@ -151,22 +151,19 @@ const EntryDetails = () => {
                 <BsCopy />
               </Button>
             </p>
-            <p className="text-wrap">
-              Signature:{" "}
-              <div className="text-wrap text-break">
-                {entry.signature}
-                <Button
-                  variant="link"
-                  className="link-info"
-                  title="Copy to clipboard."
-                  onClick={(event) => {
-                    copyToClipboard(entry.signature);
-                    event.currentTarget.blur();
-                  }}
-                >
-                  <BsCopy />
-                </Button>
-              </div>
+            <p>
+              Signature: {entry.signature}
+              <Button
+                variant="link"
+                className="link-info py-0"
+                title="Copy to clipboard."
+                onClick={(event) => {
+                  copyToClipboard(entry.signature);
+                  event.currentTarget.blur();
+                }}
+              >
+                <BsCopy />
+              </Button>
             </p>
             <p>
               Integrity:{" "}
