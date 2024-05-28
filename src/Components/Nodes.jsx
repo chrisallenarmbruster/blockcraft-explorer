@@ -44,9 +44,7 @@ const Nodes = () => {
                   </Card.Title>
                 </Card.Header>
                 <Card.Body>
-                  <Card.Text>IP: {node.ip}</Card.Text>
                   <Card.Text>URL: {node.url}</Card.Text>
-                  <Card.Text>P2P Port: {node.p2pPort}</Card.Text>
                   <Card.Text>Web Service Port: {node.webServicePort}</Card.Text>
                 </Card.Body>
               </Card>
