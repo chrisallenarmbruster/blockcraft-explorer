@@ -62,13 +62,13 @@ Check out the [Blockcraft Explorer Demo](https://node1.blockcraft.rev4labs.com)
 
 ### Responsive Menu
 
-![Responsive Menu](/public/images/screenshots/off-canvas-menu.gif)
+<img src="/public/images/screenshots/off-canvas-menu.gif" alt="Responsive Tables" width="450" >
 
 <br>
 
 ### Responsive Tables
 
-![Responsive Tables](/public/images/screenshots/responsive-table.gif)
+<img src="/public/images/screenshots/responsive-table.gif" alt="Responsive Tables" width="450" >
 
 <br>
 
