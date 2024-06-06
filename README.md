@@ -1,6 +1,9 @@
 # Blockcraft Explorer 🌐
 
-Welcome to the Blockcraft Explorer, my official React/Redux frontend for the Blockcraft blockchain package! This tool is designed to help you navigate and interact with a Blockcraft blockchain, providing insights into blocks, transactions, and the overall network state. 🚀
+Welcome to the Blockcraft Explorer, the official React/Redux frontend for my [Blockcraft](https://github.com/chrisallenarmbruster/blockcraft) blockchain package! This tool is designed to help you navigate and interact with a Blockcraft blockchain, providing insights into blocks, transactions, and the overall network state. 🚀
+<br>
+
+[![Blockcraft Explorer Composite](/public/images/screenshots/composite.png)](https://node1.blockcraft.rev4labs.com)
 
 ## Features 🌟
 
@@ -8,6 +11,66 @@ Welcome to the Blockcraft Explorer, my official React/Redux frontend for the Blo
 - **Chain Integrity Check** ✅: Verify the integrity of the blockchain to ensure its validity and consistency.
 - **Block and Transaction Details** 🔍: Explore individual blocks and transactions to understand the flow of data and information across the network.
 - **Decentralized Node Visualization** 🌍: View and interact with the network nodes that make up the blockchain infrastructure.
+
+## Working Demo
+
+Check out the [Blockcraft Explorer Demo](https://node1.blockcraft.rev4labs.com)
+
+## Screenshots
+
+### Blockchain Summary (Mobile View)
+
+![Summary - Mobile View](/public/images/screenshots/home-sm-frame.png)
+
+<br>
+
+### Blockchain Summary (Desktop View)
+
+![Summary - Desktop View](/public/images/screenshots/summary.png)
+
+<br>
+
+### Block Detail
+
+![Block Detail](/public/images/screenshots/block-detail.png)
+
+<br>
+
+### Entries or Transactions for a Given Address
+
+![Entries by Account](/public/images/screenshots/entries.png)
+
+<br>
+
+### Entry Details
+
+![Entry Details](/public/images/screenshots/entry-details.png)
+
+<br>
+
+### Connected Peer-to-Peer Nodes
+
+![P2P Nodes](/public/images/screenshots/nodes-sm.png)
+
+<br>
+
+### Custom Blockchain Scroller Component
+
+![Blockchain Scroller Component](/public/images/screenshots/block-scroller.gif)
+
+<br>
+
+### Responsive Menu
+
+![Responsive Menu](/public/images/screenshots/off-canvas-menu.gif)
+
+<br>
+
+### Responsive Tables
+
+![Responsive Tables](/public/images/screenshots/responsive-table.gif)
+
+<br>
 
 ## Getting Started 🚀
 
